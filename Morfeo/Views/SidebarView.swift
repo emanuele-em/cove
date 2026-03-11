@@ -186,7 +186,7 @@ struct VisualEffectBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
-        view.blendingMode = .behindWindow
+        view.blendingMode = .withinWindow
         view.state = .followsWindowActiveState
         return view
     }
