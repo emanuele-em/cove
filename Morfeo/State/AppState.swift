@@ -16,6 +16,7 @@ enum TableTab {
 @MainActor
 final class AppState {
     var connection: (any DatabaseBackend)?
+    var sshTunnel: SSHTunnel?
     var tree = TreeState()
     var table: TableState?
     var savedConnections: [SavedConnection]
@@ -66,7 +67,8 @@ final class AppState {
         guard let saved = savedConnections[safe: idx] else { return }
         let config = ConnectionConfig(
             backend: saved.backend, host: saved.host, port: saved.port,
-            user: saved.user, password: saved.password, database: saved.database
+            user: saved.user, password: saved.password, database: saved.database,
+            sshTunnel: saved.sshTunnelConfig
         )
         Task {
             await performConnect(config: config)
@@ -88,17 +90,28 @@ final class AppState {
             user: dialog.user,
             password: dialog.password,
             database: dialog.database,
-            colorHex: dialog.colorHex
+            colorHex: dialog.colorHex,
+            sshEnabled: dialog.sshEnabled ? true : nil,
+            sshHost: dialog.sshEnabled ? dialog.sshHost : nil,
+            sshPort: dialog.sshEnabled ? dialog.sshPort : nil,
+            sshUser: dialog.sshEnabled ? dialog.sshUser : nil,
+            sshAuthMethod: dialog.sshEnabled ? dialog.sshAuthMethod : nil,
+            sshPassword: dialog.sshEnabled ? dialog.sshPassword : nil,
+            sshPrivateKeyPath: dialog.sshEnabled ? dialog.sshPrivateKeyPath : nil,
+            sshPassphrase: dialog.sshEnabled ? dialog.sshPassphrase : nil
         )
         let config = ConnectionConfig(
             backend: saved.backend, host: saved.host, port: saved.port,
-            user: saved.user, password: saved.password, database: saved.database
+            user: saved.user, password: saved.password, database: saved.database,
+            sshTunnel: saved.sshTunnelConfig
         )
 
         Task {
             do {
-                let conn = try await morfeoConnect(config: config)
+                await closeTunnel()
+                let (conn, tunnel) = try await morfeoConnect(config: config)
                 self.connection = conn
+                self.sshTunnel = tunnel
                 self.savedConnections.append(saved)
                 self.activeConnectionIdx = self.savedConnections.count - 1
                 self.tree.reset()
@@ -119,6 +132,49 @@ final class AppState {
         }
     }
 
+    func dialogTest() {
+        dialog.testing = true
+        dialog.testResult = nil
+        dialog.error = ""
+
+        let sshTunnelConfig: SSHTunnelConfig? = dialog.sshEnabled
+            ? SSHTunnelConfig(
+                sshHost: dialog.sshHost, sshPort: dialog.sshPort,
+                sshUser: dialog.sshUser, authMethod: dialog.sshAuthMethod,
+                sshPassword: dialog.sshPassword, privateKeyPath: dialog.sshPrivateKeyPath,
+                passphrase: dialog.sshPassphrase)
+            : nil
+        let config = ConnectionConfig(
+            backend: dialog.backend, host: dialog.host, port: dialog.port,
+            user: dialog.user, password: dialog.password, database: dialog.database,
+            sshTunnel: sshTunnelConfig
+        )
+
+        Task {
+            do {
+                let (_, tunnel) = try await withThrowingTaskGroup(of: (any DatabaseBackend, SSHTunnel?).self) { group in
+                    group.addTask {
+                        try await morfeoConnect(config: config)
+                    }
+                    group.addTask {
+                        try await Task.sleep(for: .seconds(15))
+                        throw CancellationError()
+                    }
+                    let result = try await group.next()!
+                    group.cancelAll()
+                    return result
+                }
+                await tunnel?.close()
+                self.dialog.testResult = (success: true, message: "Connection successful.")
+            } catch is CancellationError {
+                self.dialog.testResult = (success: false, message: "Connection timed out after 15 seconds.")
+            } catch {
+                self.dialog.testResult = (success: false, message: error.localizedDescription)
+            }
+            self.dialog.testing = false
+        }
+    }
+
     func dialogCancel() {
         dialog.visible = false
     }
@@ -134,6 +190,14 @@ final class AppState {
         dialog.password = conn.password
         dialog.database = conn.database
         dialog.colorHex = conn.colorHex ?? MorfeoTheme.accentHex
+        dialog.sshEnabled = conn.sshEnabled ?? false
+        dialog.sshHost = conn.sshHost ?? ""
+        dialog.sshPort = conn.sshPort ?? "22"
+        dialog.sshUser = conn.sshUser ?? ""
+        dialog.sshAuthMethod = conn.sshAuthMethod ?? .password
+        dialog.sshPassword = conn.sshPassword ?? ""
+        dialog.sshPrivateKeyPath = conn.sshPrivateKeyPath ?? ""
+        dialog.sshPassphrase = conn.sshPassphrase ?? ""
         dialog.visible = true
     }
 
@@ -149,6 +213,14 @@ final class AppState {
         savedConnections[idx].password = dialog.password
         savedConnections[idx].database = dialog.database
         savedConnections[idx].colorHex = dialog.colorHex
+        savedConnections[idx].sshEnabled = dialog.sshEnabled ? true : nil
+        savedConnections[idx].sshHost = dialog.sshEnabled ? dialog.sshHost : nil
+        savedConnections[idx].sshPort = dialog.sshEnabled ? dialog.sshPort : nil
+        savedConnections[idx].sshUser = dialog.sshEnabled ? dialog.sshUser : nil
+        savedConnections[idx].sshAuthMethod = dialog.sshEnabled ? dialog.sshAuthMethod : nil
+        savedConnections[idx].sshPassword = dialog.sshEnabled ? dialog.sshPassword : nil
+        savedConnections[idx].sshPrivateKeyPath = dialog.sshEnabled ? dialog.sshPrivateKeyPath : nil
+        savedConnections[idx].sshPassphrase = dialog.sshEnabled ? dialog.sshPassphrase : nil
 
         ConnectionStoreIO.save(ConnectionStore(connections: savedConnections))
         dialog.visible = false
@@ -170,6 +242,7 @@ final class AppState {
         }
 
         if activeConnectionIdx == idx {
+            Task { await closeTunnel() }
             connection = nil
             tree.reset()
             table = nil
@@ -188,9 +261,11 @@ final class AppState {
 
     private func performConnect(config: ConnectionConfig) async {
         connecting = true
+        await closeTunnel()
         do {
-            let conn = try await morfeoConnect(config: config)
+            let (conn, tunnel) = try await morfeoConnect(config: config)
             self.connection = conn
+            self.sshTunnel = tunnel
             self.tree.reset()
             self.table = nil
             self.contentMode = .empty
@@ -201,6 +276,11 @@ final class AppState {
             self.errorText = error.localizedDescription
         }
         connecting = false
+    }
+
+    private func closeTunnel() async {
+        await sshTunnel?.close()
+        sshTunnel = nil
     }
 
     // MARK: - Tree
@@ -852,12 +932,14 @@ final class AppState {
         connecting = true
         let config = ConnectionConfig(
             backend: saved.backend, host: saved.host, port: saved.port,
-            user: saved.user, password: saved.password, database: saved.database
+            user: saved.user, password: saved.password, database: saved.database,
+            sshTunnel: saved.sshTunnelConfig
         )
 
         do {
-            let conn = try await morfeoConnect(config: config)
+            let (conn, tunnel) = try await morfeoConnect(config: config)
             self.connection = conn
+            self.sshTunnel = tunnel
             self.tree.reset()
             self.table = nil
             self.contentMode = .empty

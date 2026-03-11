@@ -11,9 +11,21 @@ final class DialogState {
     var database = ""
     var error = ""
     var connecting = false
+    var testing = false
+    var testResult: (success: Bool, message: String)?
     var visible = false
     var editingConnectionId: UUID?
     var colorHex: String = MorfeoTheme.accentHex
+
+    // SSH tunnel
+    var sshEnabled = false
+    var sshHost = ""
+    var sshPort = "22"
+    var sshUser = ""
+    var sshAuthMethod: SSHAuthMethod = .password
+    var sshPassword = ""
+    var sshPrivateKeyPath = ""
+    var sshPassphrase = ""
 
     var isEditing: Bool { editingConnectionId != nil }
 
@@ -27,7 +39,17 @@ final class DialogState {
         database = ""
         error = ""
         connecting = false
+        testing = false
+        testResult = nil
         editingConnectionId = nil
         colorHex = MorfeoTheme.accentHex
+        sshEnabled = false
+        sshHost = ""
+        sshPort = "22"
+        sshUser = ""
+        sshAuthMethod = .password
+        sshPassword = ""
+        sshPrivateKeyPath = ""
+        sshPassphrase = ""
     }
 }

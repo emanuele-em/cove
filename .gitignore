@@ -20,3 +20,9 @@ Package.resolved
 
 # macOS
 .DS_Store
+*.dmg
+
+# Secrets
+.env
+*.pem
+*.p12
