@@ -4,13 +4,13 @@ A native macOS database client. Fast, lightweight, extensible.
 
 Supports **PostgreSQL**, **ScyllaDB**, and **Redis** out of the box. Adding a new database backend requires zero changes to UI code.
 
-> **Early release** — core browsing and editing works, but features like autocomplete, import/export, and query tabs are not yet implemented. See [Roadmap](#roadmap).
+> **Early release** — core browsing and editing works, but features like import/export and query tabs are not yet implemented. See [Roadmap](#roadmap).
 
 ## Features
 
 - Browse schemas, tables, views, keys in a sidebar tree
 - Edit rows inline with SQL/CQL preview before commit
-- Run queries with syntax highlighting
+- Run queries with syntax highlighting and autocomplete
 - Manage multiple connections with color-coded indicators
 - **SSH tunneling** — connect to databases behind firewalls via a jump host (password or private key auth)
 - Native macOS UI — no Electron, no web views
@@ -36,7 +36,6 @@ See [`DB/README.md`](Morfeo/DB/README.md) for the step-by-step guide.
 
 Not yet implemented (contributions welcome):
 
-- Query autocomplete
 - Import/export (CSV, JSON, SQL)
 - Multiple query tabs
 - Data filtering and search
