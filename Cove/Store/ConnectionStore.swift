@@ -26,7 +26,7 @@ enum ConnectionStoreIO {
 
         // Hydrate passwords from Keychain
         for i in store.connections.indices {
-            store.connections[i].loadPasswordsFromKeychain()
+            store.connections[i].loadPasswords()
         }
 
         if needsMigration {
@@ -44,7 +44,7 @@ enum ConnectionStoreIO {
 
             // Save passwords to Keychain
             for conn in store.connections {
-                conn.savePasswordsToKeychain()
+                conn.savePasswords()
             }
 
             // JSON is written without password fields (custom CodingKeys)

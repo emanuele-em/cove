@@ -280,7 +280,7 @@ final class AppState {
             handleConnectionDeleted()
         }
 
-        conn.deletePasswordsFromKeychain()
+        conn.deletePasswords()
         shared.savedConnections.remove(at: idx)
         shared.saveConnections()
         connectionToDelete = nil

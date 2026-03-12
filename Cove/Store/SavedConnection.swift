@@ -115,32 +115,32 @@ struct SavedConnection: Codable, Identifiable {
         sshPrivateKeyPath = try c.decodeIfPresent(String.self, forKey: .sshPrivateKeyPath)
     }
 
-    // MARK: - Keychain integration
+    // MARK: - Secret storage
 
-    func savePasswordsToKeychain() {
+    func savePasswords() {
         let prefix = id.uuidString
         if !password.isEmpty {
-            KeychainHelper.save(account: "\(prefix).password", password: password)
+            SecretStore.save(account: "\(prefix).password", password: password)
         }
         if let sshPassword, !sshPassword.isEmpty {
-            KeychainHelper.save(account: "\(prefix).sshPassword", password: sshPassword)
+            SecretStore.save(account: "\(prefix).sshPassword", password: sshPassword)
         }
         if let sshPassphrase, !sshPassphrase.isEmpty {
-            KeychainHelper.save(account: "\(prefix).sshPassphrase", password: sshPassphrase)
+            SecretStore.save(account: "\(prefix).sshPassphrase", password: sshPassphrase)
         }
     }
 
-    mutating func loadPasswordsFromKeychain() {
+    mutating func loadPasswords() {
         let prefix = id.uuidString
-        password = KeychainHelper.load(account: "\(prefix).password") ?? ""
-        sshPassword = KeychainHelper.load(account: "\(prefix).sshPassword")
-        sshPassphrase = KeychainHelper.load(account: "\(prefix).sshPassphrase")
+        password = SecretStore.load(account: "\(prefix).password") ?? ""
+        sshPassword = SecretStore.load(account: "\(prefix).sshPassword")
+        sshPassphrase = SecretStore.load(account: "\(prefix).sshPassphrase")
     }
 
-    func deletePasswordsFromKeychain() {
+    func deletePasswords() {
         let prefix = id.uuidString
-        KeychainHelper.delete(account: "\(prefix).password")
-        KeychainHelper.delete(account: "\(prefix).sshPassword")
-        KeychainHelper.delete(account: "\(prefix).sshPassphrase")
+        SecretStore.delete(account: "\(prefix).password")
+        SecretStore.delete(account: "\(prefix).sshPassword")
+        SecretStore.delete(account: "\(prefix).sshPassphrase")
     }
 }
