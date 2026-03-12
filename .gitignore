@@ -1,6 +1,3 @@
-# Rust (legacy)
-/target
-
 # Xcode
 build/
 DerivedData/
