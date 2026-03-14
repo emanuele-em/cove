@@ -130,6 +130,7 @@
 				AA000081 /* CassandraClient */,
 				AA000082 /* RediStack */,
 				AA000083 /* NIOSSH */,
+				AA000084 /* MySQLNIO */,
 			);
 			productName = Cove;
 			productReference = AA000001 /* Cove.app */;
@@ -180,6 +181,7 @@
 				AA000071 /* XCRemoteSwiftPackageReference "swift-cassandra-client" */,
 				AA000072 /* XCRemoteSwiftPackageReference "RediStack" */,
 				AA000073 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */,
+				AA000074 /* XCRemoteSwiftPackageReference "mysql-nio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA000060 /* Products */;
@@ -421,6 +423,14 @@
 				minimumVersion = 0.8.0;
 			};
 		};
+		AA000074 /* XCRemoteSwiftPackageReference "mysql-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor/mysql-nio";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -443,6 +453,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA000073 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */;
 			productName = NIOSSH;
+		};
+		AA000084 /* MySQLNIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000074 /* XCRemoteSwiftPackageReference "mysql-nio" */;
+			productName = MySQLNIO;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

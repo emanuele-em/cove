@@ -2,12 +2,14 @@ import Foundation
 
 enum BackendType: String, Codable, CaseIterable, Sendable {
     case postgres
+    case mysql
     case scylladb
     case redis
 
     var displayName: String {
         switch self {
         case .postgres: "PostgreSQL"
+        case .mysql: "MySQL"
         case .scylladb: "ScyllaDB"
         case .redis: "Redis"
         }
@@ -16,6 +18,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
     var iconAsset: String {
         switch self {
         case .postgres: "postgres-logo"
+        case .mysql: "mysql-logo"
         case .scylladb: "scylladb-logo"
         case .redis: "redis-logo"
         }
@@ -24,6 +27,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
     var defaultPort: String {
         switch self {
         case .postgres: "5432"
+        case .mysql: "3306"
         case .scylladb: "9042"
         case .redis: "6379"
         }
@@ -99,6 +103,8 @@ func coveConnect(config: ConnectionConfig) async throws -> (any DatabaseBackend,
         switch effectiveConfig.backend {
         case .postgres:
             backend = try await PostgresBackend.connect(config: effectiveConfig)
+        case .mysql:
+            backend = try await MySQLBackend.connect(config: effectiveConfig)
         case .scylladb:
             backend = try await ScyllaBackend.connect(config: effectiveConfig)
         case .redis:
