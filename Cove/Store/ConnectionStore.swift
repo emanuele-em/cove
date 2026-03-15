@@ -23,9 +23,13 @@ enum ConnectionStoreIO {
 
     static func save(_ store: ConnectionStore) {
         guard let url = fileURL else { return }
-        let dir = url.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        guard let data = try? JSONEncoder().encode(store) else { return }
-        try? data.write(to: url)
+        do {
+            let dir = url.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(store)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("[Cove] Failed to save connections: \(error)")
+        }
     }
 }

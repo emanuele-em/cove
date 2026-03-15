@@ -29,9 +29,13 @@ enum SessionStoreIO {
 
     static func save(_ state: SessionState) {
         guard let url = fileURL else { return }
-        let dir = url.deletingLastPathComponent()
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        guard let data = try? JSONEncoder().encode(state) else { return }
-        try? data.write(to: url)
+        do {
+            let dir = url.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(state)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("[Cove] Failed to save session: \(error)")
+        }
     }
 }
