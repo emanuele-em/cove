@@ -54,36 +54,11 @@ struct ConnectionRail: View {
                     .foregroundStyle(.white)
             }
             .frame(width: 38, height: 38)
-            .background {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(color.opacity(isActive ? 1 : 0.4))
-                    // Top highlight for glassy look
-                    VStack(spacing: 0) {
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.3), .white.opacity(0.05)],
-                                    startPoint: .top,
-                                    endPoint: .center
-                                )
-                            )
-                            .frame(height: 20)
-                        Spacer(minLength: 0)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    // Inner border for depth
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [.white.opacity(0.25), .white.opacity(0.05)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ),
-                            lineWidth: 0.5
-                        )
-                }
-            }
+            .background(color.opacity(isActive ? 1 : 0.4), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(nsColor: .separatorColor), lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
         .contextMenu {
