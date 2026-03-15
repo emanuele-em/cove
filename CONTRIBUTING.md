@@ -1,38 +1,22 @@
 # Contributing
 
-## Quick start
+## Build
 
 ```
-xcodebuild -scheme Cove -derivedDataPath .build build
-open .build/Build/Products/Debug/Cove.app
+xcodebuild -scheme Cove -derivedDataPath .build build && open .build/Build/Products/Debug/Cove.app
 ```
 
-Or open `Cove.xcodeproj` in Xcode and build (Cmd+B). Requires macOS 15+.
-
-## Architecture
-
-Everything goes through the `DatabaseBackend` protocol. The UI never checks which backend is active — it asks the protocol what's possible and renders accordingly.
-
-**Adding a new backend:**
-1. Add a case to `BackendType` in `ConnectionConfig.swift`
-2. Implement `DatabaseBackend` in a new `DB/<Backend>/` directory
-3. Wire it up in `coveConnect()`
-
-See [`DB/README.md`](Cove/DB/README.md) for the full guide with a working skeleton.
+Or open `Cove.xcodeproj` in Xcode (Cmd+B). Requires macOS 15+.
 
 ## Rules
 
-- No `if postgres` / `if scylla` in UI code. Ever.
-- Swift 6, structured concurrency, `@Observable`.
-- Keep files under ~300 lines. One concern per file.
-- Only comment "why", never "what".
-- Use native macOS controls. No custom-drawn UI when SwiftUI provides a standard equivalent.
-- `throws` + `try`. No force-unwraps.
-- Minimal dependencies. Every new package must justify itself.
+- Everything goes through `DatabaseBackend`. No backend checks in UI code.
+- Swift 6, `@Observable`, native macOS controls, no force-unwraps.
+- One concern per file, ~300 line max.
+- Adding a backend? See [`DB/README.md`](Cove/DB/README.md).
 
-## Submitting changes
+## Submitting
 
-1. Fork and create a branch from `main`.
-2. Make your changes. Keep PRs focused — one feature or fix per PR.
-3. Verify the build succeeds: `xcodebuild -scheme Cove -derivedDataPath .build build`
-4. Open a PR with a clear description of what and why.
+1. Fork, branch, make changes (one feature/fix per PR).
+2. Verify build succeeds.
+3. Open a PR with a clear description.
