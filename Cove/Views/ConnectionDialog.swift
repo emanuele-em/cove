@@ -9,7 +9,7 @@ struct ConnectionDialog: View {
     @State private var user = ""
     @State private var password = ""
     @State private var database = ""
-    @State private var selectedColor = MorfeoTheme.accent
+    @State private var selectedColor = CoveTheme.accent
 
     // SSH tunnel
     @State private var sshEnabled = false

@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 @main
-struct MorfeoApp: App {
+struct CoveApp: App {
     @State private var appState = AppState()
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
 

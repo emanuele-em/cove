@@ -3,11 +3,11 @@
 ## Quick start
 
 ```
-xcodebuild -scheme Morfeo -derivedDataPath .build build
-open .build/Build/Products/Debug/Morfeo.app
+xcodebuild -scheme Cove -derivedDataPath .build build
+open .build/Build/Products/Debug/Cove.app
 ```
 
-Or open `Morfeo.xcodeproj` in Xcode and build (Cmd+B). Requires macOS 15+.
+Or open `Cove.xcodeproj` in Xcode and build (Cmd+B). Requires macOS 15+.
 
 ## Architecture
 
@@ -16,9 +16,9 @@ Everything goes through the `DatabaseBackend` protocol. The UI never checks whic
 **Adding a new backend:**
 1. Add a case to `BackendType` in `ConnectionConfig.swift`
 2. Implement `DatabaseBackend` in a new `DB/<Backend>/` directory
-3. Wire it up in `morfeoConnect()`
+3. Wire it up in `coveConnect()`
 
-See [`DB/README.md`](Morfeo/DB/README.md) for the full guide with a working skeleton.
+See [`DB/README.md`](Cove/DB/README.md) for the full guide with a working skeleton.
 
 ## Rules
 
@@ -34,5 +34,5 @@ See [`DB/README.md`](Morfeo/DB/README.md) for the full guide with a working skel
 
 1. Fork and create a branch from `main`.
 2. Make your changes. Keep PRs focused — one feature or fix per PR.
-3. Verify the build succeeds: `xcodebuild -scheme Morfeo -derivedDataPath .build build`
+3. Verify the build succeeds: `xcodebuild -scheme Cove -derivedDataPath .build build`
 4. Open a PR with a clear description of what and why.

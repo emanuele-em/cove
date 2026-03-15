@@ -14,4 +14,4 @@ jobs:
       - uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
-      - run: xcodebuild -scheme Morfeo -derivedDataPath .build build
+      - run: xcodebuild -scheme Cove -derivedDataPath .build build

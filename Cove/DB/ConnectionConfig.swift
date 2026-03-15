@@ -72,7 +72,7 @@ struct ConnectionConfig: Sendable {
     }
 }
 
-func morfeoConnect(config: ConnectionConfig) async throws -> (any DatabaseBackend, SSHTunnel?) {
+func coveConnect(config: ConnectionConfig) async throws -> (any DatabaseBackend, SSHTunnel?) {
     var effectiveConfig = config
     var tunnel: SSHTunnel?
 

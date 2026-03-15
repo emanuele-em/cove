@@ -5,7 +5,7 @@ enum QueryStoreIO {
         guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return nil
         }
-        return support.appendingPathComponent("Morfeo/queries.json")
+        return support.appendingPathComponent("Cove/queries.json")
     }
 
     static func load() -> [String: String] {

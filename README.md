@@ -1,4 +1,4 @@
-# Morfeo
+# Cove
 
 A native macOS database client. Fast, lightweight, extensible.
 
@@ -17,20 +17,20 @@ Supports **PostgreSQL**, **ScyllaDB**, and **Redis** out of the box. Adding a ne
 
 ## Install
 
-Download the latest `.dmg` from [Releases](https://github.com/user/morfeo/releases), or build from source:
+Download the latest `.dmg` from [Releases](https://github.com/user/cove/releases), or build from source:
 
 ```
-xcodebuild -scheme Morfeo -derivedDataPath .build build
-open .build/Build/Products/Debug/Morfeo.app
+xcodebuild -scheme Cove -derivedDataPath .build build
+open .build/Build/Products/Debug/Cove.app
 ```
 
 Requires macOS 15+.
 
 ## Add a database backend
 
-Morfeo is designed so that a new backend (MySQL, SQLite, MongoDB, ...) can be added by only creating files under `DB/` and a case in `BackendType`. The UI adapts automatically.
+Cove is designed so that a new backend (MySQL, SQLite, MongoDB, ...) can be added by only creating files under `DB/` and a case in `BackendType`. The UI adapts automatically.
 
-See [`DB/README.md`](Morfeo/DB/README.md) for the step-by-step guide.
+See [`DB/README.md`](Cove/DB/README.md) for the step-by-step guide.
 
 ## Roadmap
 

@@ -1,8 +1,8 @@
-# Morfeo — Development Guidelines
+# Cove — Development Guidelines
 
-## What is Morfeo
+## What is Cove
 
-Morfeo is a multi-database GUI client written in Swift + SwiftUI for macOS 15+. It currently supports PostgreSQL and ScyllaDB, and is designed so that adding a new database backend requires **zero changes to UI code**.
+Cove is a multi-database GUI client written in Swift + SwiftUI for macOS 15+. It currently supports PostgreSQL and ScyllaDB, and is designed so that adding a new database backend requires **zero changes to UI code**.
 
 ## Contribution-first architecture
 
@@ -27,11 +27,11 @@ This means a new contributor can add an entire database backend (MySQL, Redis, M
 ## Architecture
 
 ```
-Morfeo/
-  MorfeoApp.swift
+Cove/
+  CoveApp.swift
   DB/
     DatabaseBackend.swift      — protocol + CreateField type
-    ConnectionConfig.swift     — BackendType enum, ConnectionConfig, morfeoConnect()
+    ConnectionConfig.swift     — BackendType enum, ConnectionConfig, coveConnect()
     HierarchyNode.swift        — tree node types (HierarchyNode, NodeTint)
     QueryResult.swift          — query result types
     DbError.swift              — error types
@@ -90,10 +90,10 @@ The `DatabaseBackend` protocol has three tiers of methods:
 ## Build & Run
 
 ```
-xcodebuild -scheme Morfeo -derivedDataPath .build build && open .build/Build/Products/Debug/Morfeo.app
+xcodebuild -scheme Cove -derivedDataPath .build build && open .build/Build/Products/Debug/Cove.app
 ```
 
-Or open `Morfeo.xcodeproj` in Xcode and build (Cmd+B).
+Or open `Cove.xcodeproj` in Xcode and build (Cmd+B).
 
 ## Tech Stack
 - Swift 6 + SwiftUI (macOS 15+)

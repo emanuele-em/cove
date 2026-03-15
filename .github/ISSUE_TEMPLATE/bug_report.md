@@ -15,5 +15,5 @@ labels: bug
 
 **Environment**
 - macOS version:
-- Morfeo version:
+- Cove version:
 - Database type and version:

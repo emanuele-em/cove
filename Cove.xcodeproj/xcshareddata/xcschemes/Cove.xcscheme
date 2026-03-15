@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "AA000010"
-               BuildableName = "Morfeo.app"
-               BlueprintName = "Morfeo"
-               ReferencedContainer = "container:Morfeo.xcodeproj">
+               BuildableName = "Cove.app"
+               BlueprintName = "Cove"
+               ReferencedContainer = "container:Cove.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -38,9 +38,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "AA000010"
-            BuildableName = "Morfeo.app"
-            BlueprintName = "Morfeo"
-            ReferencedContainer = "container:Morfeo.xcodeproj">
+            BuildableName = "Cove.app"
+            BlueprintName = "Cove"
+            ReferencedContainer = "container:Cove.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>

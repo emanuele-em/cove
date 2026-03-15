@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-enum MorfeoTheme {
+enum CoveTheme {
     // Backgrounds
     static let bg         = Color(nsColor: .windowBackgroundColor)
     static let bgAlt      = Color(nsColor: .controlBackgroundColor)

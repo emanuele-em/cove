@@ -15,7 +15,7 @@ final class DialogState {
     var testResult: (success: Bool, message: String)?
     var visible = false
     var editingConnectionId: UUID?
-    var colorHex: String = MorfeoTheme.accentHex
+    var colorHex: String = CoveTheme.accentHex
 
     // SSH tunnel
     var sshEnabled = false
@@ -42,7 +42,7 @@ final class DialogState {
         testing = false
         testResult = nil
         editingConnectionId = nil
-        colorHex = MorfeoTheme.accentHex
+        colorHex = CoveTheme.accentHex
         sshEnabled = false
         sshHost = ""
         sshPort = "22"

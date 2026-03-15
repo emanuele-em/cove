@@ -39,7 +39,7 @@ struct ConnectionRail: View {
 
     private func connectionButton(_ conn: SavedConnection, index: Int) -> some View {
         let isActive = state.activeConnectionIdx == index
-        let color = Color(hex: conn.colorHex ?? MorfeoTheme.accentHex)
+        let color = Color(hex: conn.colorHex ?? CoveTheme.accentHex)
         return Button {
             state.selectConnection(index)
         } label: {

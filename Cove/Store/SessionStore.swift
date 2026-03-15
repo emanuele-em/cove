@@ -15,7 +15,7 @@ enum SessionStoreIO {
         guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return nil
         }
-        return support.appendingPathComponent("Morfeo/session.json")
+        return support.appendingPathComponent("Cove/session.json")
     }
 
     static func load() -> SessionState? {

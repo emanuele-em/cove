@@ -10,26 +10,26 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AA000001 /* Morfeo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Morfeo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000001 /* Cove.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Cove.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA000099 /* Exceptions for "Morfeo" folder in "Morfeo" target */ = {
+		AA000099 /* Exceptions for "Cove" folder in "Cove" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = AA000010 /* Morfeo */;
+			target = AA000010 /* Cove */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AA000003 /* Morfeo */ = {
+		AA000003 /* Cove */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				AA000099 /* Exceptions for "Morfeo" folder in "Morfeo" target */,
+				AA000099 /* Exceptions for "Cove" folder in "Cove" target */,
 			);
-			path = Morfeo;
+			path = Cove;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -61,7 +61,7 @@
 		AA000002 /* root */ = {
 			isa = PBXGroup;
 			children = (
-				AA000003 /* Morfeo */,
+				AA000003 /* Cove */,
 				AA000060 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -69,7 +69,7 @@
 		AA000060 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AA000001 /* Morfeo.app */,
+				AA000001 /* Cove.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -77,9 +77,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AA000010 /* Morfeo */ = {
+		AA000010 /* Cove */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA000040 /* Build configuration list for PBXNativeTarget "Morfeo" */;
+			buildConfigurationList = AA000040 /* Build configuration list for PBXNativeTarget "Cove" */;
 			buildPhases = (
 				AA000030 /* Sources */,
 				AA000020 /* Frameworks */,
@@ -90,17 +90,17 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				AA000003 /* Morfeo */,
+				AA000003 /* Cove */,
 			);
-			name = Morfeo;
+			name = Cove;
 			packageProductDependencies = (
 				AA000080 /* PostgresNIO */,
 				AA000081 /* CassandraClient */,
 				AA000082 /* RediStack */,
 				AA000083 /* NIOSSH */,
 			);
-			productName = Morfeo;
-			productReference = AA000001 /* Morfeo.app */;
+			productName = Cove;
+			productReference = AA000001 /* Cove.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -113,7 +113,7 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 			};
-			buildConfigurationList = AA000050 /* Build configuration list for PBXProject "Morfeo" */;
+			buildConfigurationList = AA000050 /* Build configuration list for PBXProject "Cove" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -133,7 +133,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AA000010 /* Morfeo */,
+				AA000010 /* Cove */,
 			);
 		};
 /* End PBXProject section */
@@ -159,7 +159,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Morfeo/Info.plist;
+				INFOPLIST_FILE = Cove/Info.plist;
 				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -167,7 +167,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.morfeo.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
@@ -184,7 +184,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = Morfeo/Info.plist;
+				INFOPLIST_FILE = Cove/Info.plist;
 				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -192,7 +192,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.morfeo.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
@@ -258,7 +258,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		AA000040 /* Build configuration list for PBXNativeTarget "Morfeo" */ = {
+		AA000040 /* Build configuration list for PBXNativeTarget "Cove" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AA000041 /* Debug */,
@@ -267,7 +267,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		AA000050 /* Build configuration list for PBXProject "Morfeo" */ = {
+		AA000050 /* Build configuration list for PBXProject "Cove" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				AA000051 /* Debug */,

@@ -1,6 +1,6 @@
-# Adding a Database Backend to Morfeo
+# Adding a Database Backend to Cove
 
-Morfeo uses a protocol-based backend system. Each database (Postgres, ScyllaDB, MySQL, etc.) implements the `DatabaseBackend` protocol. The UI layer is fully agnostic — it never checks which backend is active, so adding a new database requires **zero changes to UI code**.
+Cove uses a protocol-based backend system. Each database (Postgres, ScyllaDB, MySQL, etc.) implements the `DatabaseBackend` protocol. The UI layer is fully agnostic — it never checks which backend is active, so adding a new database requires **zero changes to UI code**.
 
 ## Step-by-step
 
@@ -11,7 +11,7 @@ Morfeo uses a protocol-based backend system. Each database (Postgres, ScyllaDB, 
    - `defaultPort` — default port string (e.g. `"3306"`)
 3. **Add the logo** to `Assets.xcassets/` (PDF or PNG, any size — it's displayed small)
 4. **Implement `DatabaseBackend`** — see protocol reference below
-5. **Add factory case** in `morfeoConnect()` in `ConnectionConfig.swift`
+5. **Add factory case** in `coveConnect()` in `ConnectionConfig.swift`
 6. **Add the driver dependency** to the Xcode project (SPM)
 
 ## Protocol reference

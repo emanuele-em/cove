@@ -81,7 +81,7 @@ final class RedisBackend: DatabaseBackend, @unchecked Sendable {
             connectionInitialDatabase: database == 0 ? nil : database,
             connectionUsername: config.user.isEmpty ? nil : config.user,
             connectionPassword: config.password.isEmpty ? nil : config.password,
-            connectionDefaultLogger: Logger(label: "morfeo.redis")
+            connectionDefaultLogger: Logger(label: "cove.redis")
         )
 
         let poolConfig = RedisConnectionPool.Configuration(

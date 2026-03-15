@@ -15,20 +15,20 @@ jobs:
           xcode-version: latest-stable
 
       - name: Build
-        run: xcodebuild -scheme Morfeo -configuration Release -derivedDataPath .build build
+        run: xcodebuild -scheme Cove -configuration Release -derivedDataPath .build build
 
       - name: Package app
         run: |
-          APP_PATH=".build/Build/Products/Release/Morfeo.app"
+          APP_PATH=".build/Build/Products/Release/Cove.app"
           # Create DMG
-          hdiutil create -volname "Morfeo" -srcfolder "$APP_PATH" -ov -format UDZO Morfeo.dmg
+          hdiutil create -volname "Cove" -srcfolder "$APP_PATH" -ov -format UDZO Cove.dmg
           # Create ZIP
-          ditto -c -k --keepParent "$APP_PATH" Morfeo.app.zip
+          ditto -c -k --keepParent "$APP_PATH" Cove.app.zip
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            Morfeo.dmg
-            Morfeo.app.zip
+            Cove.dmg
+            Cove.app.zip
           generate_release_notes: true

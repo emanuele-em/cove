@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Morfeo",
+    name: "Cove",
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/vapor/postgres-nio", from: "1.21.0"),
@@ -12,13 +12,13 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "Morfeo",
+            name: "Cove",
             dependencies: [
                 .product(name: "PostgresNIO", package: "postgres-nio"),
                 .product(name: "CassandraClient", package: "swift-cassandra-client"),
                 .product(name: "NIOSSH", package: "swift-nio-ssh"),
             ],
-            path: "Morfeo",
+            path: "Cove",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]

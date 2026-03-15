@@ -9,7 +9,7 @@ enum ConnectionStoreIO {
         guard let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
             return nil
         }
-        return support.appendingPathComponent("Morfeo/connections.json")
+        return support.appendingPathComponent("Cove/connections.json")
     }
 
     static func load() -> ConnectionStore {

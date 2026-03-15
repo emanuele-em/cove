@@ -108,7 +108,7 @@ final class AppState {
         Task {
             do {
                 await closeTunnel()
-                let (conn, tunnel) = try await morfeoConnect(config: config)
+                let (conn, tunnel) = try await coveConnect(config: config)
                 self.connection = conn
                 self.sshTunnel = tunnel
                 self.savedConnections.append(saved)
@@ -158,7 +158,7 @@ final class AppState {
             do {
                 let (_, tunnel) = try await withThrowingTaskGroup(of: (any DatabaseBackend, SSHTunnel?).self) { group in
                     group.addTask {
-                        try await morfeoConnect(config: config)
+                        try await coveConnect(config: config)
                     }
                     group.addTask {
                         try await Task.sleep(for: .seconds(15))
@@ -193,7 +193,7 @@ final class AppState {
         dialog.user = conn.user
         dialog.password = conn.password
         dialog.database = conn.database
-        dialog.colorHex = conn.colorHex ?? MorfeoTheme.accentHex
+        dialog.colorHex = conn.colorHex ?? CoveTheme.accentHex
         dialog.sshEnabled = conn.sshEnabled ?? false
         dialog.sshHost = conn.sshHost ?? ""
         dialog.sshPort = conn.sshPort ?? "22"
@@ -267,7 +267,7 @@ final class AppState {
         connecting = true
         await closeTunnel()
         do {
-            let (conn, tunnel) = try await morfeoConnect(config: config)
+            let (conn, tunnel) = try await coveConnect(config: config)
             self.connection = conn
             self.sshTunnel = tunnel
             self.tree.reset()
@@ -973,7 +973,7 @@ final class AppState {
         )
 
         do {
-            let (conn, tunnel) = try await morfeoConnect(config: config)
+            let (conn, tunnel) = try await coveConnect(config: config)
             self.connection = conn
             self.sshTunnel = tunnel
             self.tree.reset()
