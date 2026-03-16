@@ -10,8 +10,8 @@ private let coveWindowBg = NSColor(name: nil) { appearance in
 
 @main
 struct CoveApp: App {
-    @State private var appState = AppState()
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
+    @FocusedValue(\.appState) private var focusedTab
 
     init() {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -21,29 +21,80 @@ struct CoveApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(appState)
-                .task { await appState.restoreSession() }
-                .onAppear { configureWindow() }
+            TabRootWrapper()
         }
         .defaultSize(width: 1200, height: 800)
         .windowToolbarStyle(.unifiedCompact(showsTitle: false))
-    }
+        .commands {
+            CommandGroup(after: .newItem) {
+                Button("New Tab") {
+                    guard let currentWindow = NSApp.keyWindow,
+                          let windowController = currentWindow.windowController else { return }
+                    windowController.newWindowForTab(nil)
+                    if let newWindow = NSApp.keyWindow, currentWindow != newWindow {
+                        currentWindow.addTabbedWindow(newWindow, ordered: .above)
+                    }
+                }
+                .keyboardShortcut("t", modifiers: .command)
+            }
 
-    private func configureWindow() {
-        guard let window = NSApplication.shared.windows.first else { return }
-        window.isOpaque = false
-        window.backgroundColor = coveWindowBg
-        window.titlebarAppearsTransparent = true
+            CommandGroup(after: .toolbar) {
+                Button("Refresh") {
+                    focusedTab?.refreshCurrentScope()
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(focusedTab?.connection == nil)
+            }
+        }
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var windowObserver: Any?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        for window in NSApplication.shared.windows {
-            window.isOpaque = false
+        // Style all existing windows
+        for window in NSApp.windows {
+            styleWindow(window)
+        }
+
+        // Style any future windows (new tabs)
+        windowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification,
+            object: nil, queue: .main
+        ) { [weak self] notification in
+            guard let window = notification.object as? NSWindow else { return }
+            self?.styleWindow(window)
+        }
+
+        // Restore additional tabs
+        let count = SharedStore.shared.savedTabCount
+        guard count > 1 else { return }
+
+        DispatchQueue.main.async {
+            guard let currentWindow = NSApp.keyWindow,
+                  let windowController = currentWindow.windowController else { return }
+            for _ in 1..<count {
+                windowController.newWindowForTab(nil)
+                if let newWindow = NSApp.keyWindow, currentWindow != newWindow {
+                    currentWindow.addTabbedWindow(newWindow, ordered: .above)
+                }
+            }
+        }
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        SharedStore.shared.saveAllTabSessions()
+        SharedStore.shared.isTerminating = true
+        return .terminateNow
+    }
+
+    private func styleWindow(_ window: NSWindow) {
+        window.isOpaque = false
+        window.titlebarAppearsTransparent = true
+        window.tabbingMode = .automatic
+        if window.backgroundColor?.alphaComponent == 1 {
             window.backgroundColor = coveWindowBg
-            window.titlebarAppearsTransparent = true
         }
     }
 }

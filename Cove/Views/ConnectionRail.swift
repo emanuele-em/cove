@@ -7,10 +7,9 @@ struct ConnectionRail: View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 4) {
                 addButton
-                    .padding(.vertical, 8)
 
-                ForEach(Array(state.savedConnections.enumerated()), id: \.element.id) { idx, conn in
-                    connectionButton(conn, index: idx)
+                ForEach(state.connectionsForSelectedEnvironment) { conn in
+                    connectionButton(conn)
                 }
             }
         }
@@ -24,24 +23,24 @@ struct ConnectionRail: View {
         Button {
             state.openDialog()
         } label: {
-            Text("+")
-                .font(.system(size: 18))
+            Image(systemName: "plus")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
                 .frame(width: 38, height: 38)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(nsColor: .separatorColor), lineWidth: 1)
+                        .strokeBorder(.quaternary, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
     }
 
-    private func connectionButton(_ conn: SavedConnection, index: Int) -> some View {
-        let isActive = state.activeConnectionIdx == index
+    private func connectionButton(_ conn: SavedConnection) -> some View {
+        let isActive = state.activeConnectionId == conn.id
         let color = Color(hex: conn.colorHex ?? CoveTheme.accentHex)
         return Button {
-            state.selectConnection(index)
+            state.selectConnection(conn.id)
         } label: {
             VStack(spacing: 1) {
                 Image(conn.backend.iconAsset)
@@ -62,6 +61,12 @@ struct ConnectionRail: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
+            if state.activeConnectionId == conn.id {
+                Button("Disconnect") {
+                    state.disconnect()
+                }
+                Divider()
+            }
             Button("Edit") {
                 state.openEditDialog(for: conn)
             }

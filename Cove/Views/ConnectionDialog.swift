@@ -10,6 +10,7 @@ struct ConnectionDialog: View {
     @State private var password = ""
     @State private var database = ""
     @State private var selectedColor = CoveTheme.accent
+    @State private var selectedEnvironment: ConnectionEnvironment = .local
 
     // SSH tunnel
     @State private var sshEnabled = false
@@ -44,6 +45,22 @@ struct ConnectionDialog: View {
                 Picker("", selection: $backend) {
                     ForEach(BackendType.allCases, id: \.self) { type in
                         Text(type.displayName).tag(type)
+                    }
+                }
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            formField("Environment") {
+                Picker("", selection: $selectedEnvironment) {
+                    ForEach(ConnectionEnvironment.allCases, id: \.self) { env in
+                        Label {
+                            Text(env.displayName)
+                        } icon: {
+                            Image(systemName: "circle.fill")
+                                .foregroundStyle(env.color)
+                        }
+                        .tag(env)
                     }
                 }
                 .labelsHidden()
@@ -137,6 +154,7 @@ struct ConnectionDialog: View {
             password = dialog.password
             database = dialog.database
             selectedColor = Color(hex: dialog.colorHex)
+            selectedEnvironment = dialog.environment
             sshEnabled = dialog.sshEnabled
             sshHost = dialog.sshHost
             sshPort = dialog.sshPort
@@ -249,6 +267,7 @@ struct ConnectionDialog: View {
         dialog.password = password
         dialog.database = database
         dialog.colorHex = selectedColor.hexString
+        dialog.environment = selectedEnvironment
         dialog.sshEnabled = sshEnabled
         dialog.sshHost = sshHost
         dialog.sshPort = sshPort

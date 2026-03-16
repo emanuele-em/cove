@@ -13,51 +13,81 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 ConnectionRail()
 
-                HSplitView {
-                    if state.showSidebar {
-                        SidebarView()
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(.quaternary, lineWidth: 1)
-                            )
-                            .padding(.trailing, 4)
-                            .frame(minWidth: 184, idealWidth: 264, maxWidth: 604)
-                    }
+                if state.connection != nil {
+                    HSplitView {
+                        if state.showSidebar {
+                            SidebarView()
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(.quaternary, lineWidth: 1)
+                                )
+                                .padding(.trailing, 4)
+                                .frame(minWidth: 184, idealWidth: 264, maxWidth: 604)
+                        }
 
-                    if state.showQueryEditor {
-                        contentArea
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .layoutPriority(1)
-                    } else {
-                        contentArea
-                            .background {
-                                VisualEffectBackground(material: .underWindowBackground)
+                        if state.showQueryEditor {
+                            contentArea
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .layoutPriority(1)
+                        } else {
+                            contentArea
+                                .background {
+                                    VisualEffectBackground(material: .underWindowBackground)
+                                }
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(.quaternary, lineWidth: 1)
+                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .layoutPriority(1)
+                        }
+
+                        if state.showInspector, !state.showQueryEditor, let table = state.table,
+                           state.contentMode == .table, table.selectedRow != nil {
+                            RowInspectorView(table: table)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(.quaternary, lineWidth: 1)
+                                )
+                                .padding(.leading, 4)
+                                .frame(minWidth: 204, idealWidth: 284, maxWidth: 404)
+                        }
+                    }
+                    .hideSplitDividers()
+                    .padding(.trailing, 6)
+                    .padding(.vertical, 6)
+                } else {
+                    VStack(spacing: 16) {
+                        Image(nsImage: NSApp.applicationIconImage)
+                            .resizable()
+                            .frame(width: 64, height: 64)
+                            .opacity(0.6)
+                        HStack(spacing: 5) {
+                            Text("Click")
+                            Button {
+                                state.openDialog()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 22, height: 22)
+                                    .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 5))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .strokeBorder(.quaternary, lineWidth: 1)
+                                    )
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(.quaternary, lineWidth: 1)
-                            )
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .layoutPriority(1)
+                            .buttonStyle(.plain)
+                            Text("to create a new connection")
+                        }
+                        .font(.system(size: 13))
+                        .foregroundStyle(.tertiary)
                     }
-
-                    if state.showInspector, !state.showQueryEditor, let table = state.table,
-                       state.contentMode == .table, table.selectedRow != nil {
-                        RowInspectorView(table: table)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(.quaternary, lineWidth: 1)
-                            )
-                            .padding(.leading, 4)
-                            .frame(minWidth: 204, idealWidth: 284, maxWidth: 404)
-                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .hideSplitDividers()
-                .padding(.trailing, 6)
-                .padding(.vertical, 6)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -98,47 +128,63 @@ struct ContentView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        @Bindable var state = state
+
         let hasTable = state.table != nil && state.contentMode == .table && !state.showQueryEditor
-        let hasPending = state.table?.hasPendingEdits ?? false
         let canInspect = hasTable && state.table?.selectedRow != nil
 
-        ToolbarItemGroup(placement: .navigation) {
-            if hasTable {
-                Button { state.refresh() } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                if hasPending {
-                    Button { state.discardEdits() } label: {
-                        Image(systemName: "arrow.uturn.backward")
+        let connected = state.connection != nil
+
+        ToolbarItem(placement: .navigation) {
+            Menu {
+                ForEach(ConnectionEnvironment.allCases, id: \.self) { env in
+                    Button {
+                        state.switchEnvironment(to: env)
+                    } label: {
+                        Label {
+                            Text(env.displayName)
+                        } icon: {
+                            Image(nsImage: coloredDot(env.color))
+                        }
                     }
                 }
+            } label: {
+                Label {
+                    Text(state.selectedEnvironment.displayName)
+                        .font(.system(size: 12))
+                } icon: {
+                    Image(nsImage: coloredDot(state.selectedEnvironment.color, padding: 3))
+                }
+                .labelStyle(SpacedLabelStyle())
             }
         }
 
         ToolbarItem(placement: .principal) {
-            if !state.breadcrumb.isEmpty {
-                Text(state.breadcrumb)
-                    .font(.system(size: 12))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .background(.quaternary, in: Capsule())
-            }
+            Text(state.breadcrumb.isEmpty ? "No connection" : state.breadcrumb)
+                .font(.system(size: 12))
+                .foregroundStyle(connected ? .primary : .tertiary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                .background(.quaternary, in: Capsule())
         }
 
         ToolbarItem(placement: .primaryAction) {
-            if state.connection != nil {
-                Button { state.toggleQuery() } label: {
-                    Text("Query")
-                        .font(.system(size: 12, weight: .medium))
-                }
+            Toggle(isOn: Binding(
+                get: { state.showQueryEditor },
+                set: { _ in state.toggleQuery() }
+            )) {
+                Text("Query")
+                    .font(.system(size: 12, weight: .medium))
             }
+            .toggleStyle(.button)
+            .disabled(!connected)
         }
 
         ToolbarItemGroup(placement: .automatic) {
             Button { state.showSidebar.toggle() } label: {
                 Image(systemName: "sidebar.leading")
             }
+            .disabled(!connected)
 
             Button { state.showInspector.toggle() } label: {
                 Image(systemName: "sidebar.trailing")
@@ -242,6 +288,19 @@ struct ContentView: View {
         .background(.ultraThinMaterial)
     }
 
+    private func coloredDot(_ color: Color, padding: CGFloat = 0) -> NSImage {
+        let dot: CGFloat = 8
+        let total = dot + padding * 2
+        let image = NSImage(size: NSSize(width: total, height: total), flipped: false) { _ in
+            let oval = NSRect(x: padding, y: padding, width: dot, height: dot)
+            NSColor(color).setFill()
+            NSBezierPath(ovalIn: oval).fill()
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
     private var errorBar: some View {
         HStack {
             Text(state.errorText)
@@ -252,6 +311,17 @@ struct ContentView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
         .background(.red)
+    }
+}
+
+private struct SpacedLabelStyle: LabelStyle {
+    var spacing: CGFloat = 6
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: spacing) {
+            configuration.icon
+            configuration.title
+        }
     }
 }
 

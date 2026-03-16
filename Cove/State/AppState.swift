@@ -14,12 +14,16 @@ enum TableTab {
 @Observable
 @MainActor
 final class AppState {
+    let tabId: UUID
+    let shared = SharedStore.shared
+    weak var window: NSWindow?
+
     var connection: (any DatabaseBackend)?
     var sshTunnel: SSHTunnel?
     var tree = TreeState()
     var table: TableState?
-    var savedConnections: [SavedConnection]
-    var activeConnectionIdx: Int?
+    var activeConnectionId: UUID?
+    var selectedEnvironment: ConnectionEnvironment = .local
     var showSidebar = true
     var sidebarWidth: CGFloat = 220
     var showInspector = false
@@ -37,7 +41,6 @@ final class AppState {
     var connecting = false
     var query = QueryState()
     var completionSchema: CompletionSchema?
-    var savedQueries: [String: String]
     var showCreateSheet = false
     var createSheetLabel = ""
     var createSheetParentPath: [String] = []
@@ -46,24 +49,45 @@ final class AppState {
     var treeActionSQL = ""
     var treeActionDB = ""
     var treeActionRefreshPath: [String] = []
+    var environmentSessions: [ConnectionEnvironment: EnvironmentSession] = [:]
 
-    init() {
-        let store = ConnectionStoreIO.load()
-        self.savedConnections = store.connections
-        self.savedQueries = QueryStoreIO.load()
+    // MARK: - Forwarding computed properties (views keep using state.savedConnections)
+
+    var savedConnections: [SavedConnection] { shared.savedConnections }
+
+    var activeConnection: SavedConnection? {
+        guard let id = activeConnectionId else { return nil }
+        return shared.savedConnections.first { $0.id == id }
+    }
+
+    var connectionsForSelectedEnvironment: [SavedConnection] {
+        shared.savedConnections.filter { $0.environment == selectedEnvironment }
+    }
+
+    init(tabId: UUID = UUID()) {
+        self.tabId = tabId
+    }
+
+    func register() {
+        shared.activeTabs[tabId] = self
+    }
+
+    func unregister() {
+        shared.activeTabs.removeValue(forKey: tabId)
     }
 
     // MARK: - Connection
 
     func openDialog() {
         dialog.reset()
+        dialog.environment = selectedEnvironment
         dialog.visible = true
     }
 
-    func selectConnection(_ idx: Int) {
+    func selectConnection(_ id: UUID) {
         saveCurrentQuery()
-        activeConnectionIdx = idx
-        guard let saved = savedConnections[safe: idx] else { return }
+        activeConnectionId = id
+        guard let saved = shared.savedConnections.first(where: { $0.id == id }) else { return }
         let config = ConnectionConfig(
             backend: saved.backend, host: saved.host, port: saved.port,
             user: saved.user, password: saved.password, database: saved.database,
@@ -90,6 +114,7 @@ final class AppState {
             password: dialog.password,
             database: dialog.database,
             colorHex: dialog.colorHex,
+            environment: dialog.environment,
             sshEnabled: dialog.sshEnabled ? true : nil,
             sshHost: dialog.sshEnabled ? dialog.sshHost : nil,
             sshPort: dialog.sshEnabled ? dialog.sshPort : nil,
@@ -111,15 +136,15 @@ final class AppState {
                 let (conn, tunnel) = try await coveConnect(config: config)
                 self.connection = conn
                 self.sshTunnel = tunnel
-                self.savedConnections.append(saved)
-                self.activeConnectionIdx = self.savedConnections.count - 1
+                self.shared.savedConnections.append(saved)
+                self.activeConnectionId = saved.id
                 self.tree.reset()
                 self.table = nil
                 self.contentMode = .empty
                 self.errorText = ""
                 self.dialog.visible = false
 
-                ConnectionStoreIO.save(ConnectionStore(connections: self.savedConnections))
+                self.shared.saveConnections()
                 self.updateBreadcrumb()
                 await self.loadChildren(path: [])
                 if self.showQueryEditor {
@@ -196,6 +221,7 @@ final class AppState {
         dialog.password = conn.password
         dialog.database = conn.database
         dialog.colorHex = conn.colorHex ?? CoveTheme.accentHex
+        dialog.environment = conn.environment
         dialog.sshEnabled = conn.sshEnabled ?? false
         dialog.sshHost = conn.sshHost ?? ""
         dialog.sshPort = conn.sshPort ?? "22"
@@ -209,9 +235,9 @@ final class AppState {
 
     func dialogSaveEdit() {
         guard let editId = dialog.editingConnectionId,
-              let idx = savedConnections.firstIndex(where: { $0.id == editId }) else { return }
+              let idx = shared.savedConnections.firstIndex(where: { $0.id == editId }) else { return }
 
-        var c = savedConnections[idx]
+        var c = shared.savedConnections[idx]
         c.name = dialog.name
         c.backend = dialog.backend
         c.host = dialog.host
@@ -228,13 +254,14 @@ final class AppState {
         c.sshPassword = dialog.sshEnabled ? dialog.sshPassword : nil
         c.sshPrivateKeyPath = dialog.sshEnabled ? dialog.sshPrivateKeyPath : nil
         c.sshPassphrase = dialog.sshEnabled ? dialog.sshPassphrase : nil
-        savedConnections[idx] = c
+        c.environment = dialog.environment
+        shared.savedConnections[idx] = c
 
-        ConnectionStoreIO.save(ConnectionStore(connections: savedConnections))
+        shared.saveConnections()
         dialog.visible = false
 
-        if activeConnectionIdx == idx {
-            selectConnection(idx)
+        if activeConnectionId == editId {
+            selectConnection(editId)
         }
     }
 
@@ -244,27 +271,55 @@ final class AppState {
 
     func confirmDeleteConnection() {
         guard let conn = connectionToDelete else { return }
-        guard let idx = savedConnections.firstIndex(where: { $0.id == conn.id }) else {
+        guard let idx = shared.savedConnections.firstIndex(where: { $0.id == conn.id }) else {
             connectionToDelete = nil
             return
         }
 
-        if activeConnectionIdx == idx {
-            Task { await closeTunnel() }
-            connection = nil
-            tree.reset()
-            table = nil
-            contentMode = .empty
-            errorText = ""
-            breadcrumb = ""
-            activeConnectionIdx = nil
-        } else if let active = activeConnectionIdx, idx < active {
-            activeConnectionIdx = active - 1
+        if activeConnectionId == conn.id {
+            handleConnectionDeleted()
         }
 
-        savedConnections.remove(at: idx)
-        ConnectionStoreIO.save(ConnectionStore(connections: savedConnections))
+        conn.deletePasswordsFromKeychain()
+        shared.savedConnections.remove(at: idx)
+        shared.saveConnections()
         connectionToDelete = nil
+
+        // Disconnect other tabs that were using this connection
+        shared.handleConnectionDeleted(id: conn.id)
+    }
+
+    /// Called when another tab deletes a connection this tab is using
+    func handleConnectionDeleted() {
+        Task { await closeTunnel() }
+        connection = nil
+        tree.reset()
+        table = nil
+        contentMode = .empty
+        errorText = ""
+        breadcrumb = ""
+        activeConnectionId = nil
+        showInspector = false
+        showQueryEditor = false
+    }
+
+    func disconnect() {
+        saveCurrentQuery()
+        Task { await closeTunnel() }
+        connection = nil
+        tree.reset()
+        table = nil
+        structureTable = nil
+        contentMode = .empty
+        errorText = ""
+        breadcrumb = ""
+        activeConnectionId = nil
+        showInspector = false
+        showQueryEditor = false
+        queryDatabase = ""
+        query = QueryState()
+        completionSchema = nil
+        saveSession()
     }
 
     private func performConnect(config: ConnectionConfig) async {
@@ -379,7 +434,6 @@ final class AppState {
         guard let conn = connection,
               let sql = conn.generateDropSQL(path: path) else { return }
         treeActionSQL = sql
-        // For DROP DATABASE, run on a different connection (empty = default)
         treeActionDB = path.count == 1 ? "" : (path.first ?? "")
         treeActionRefreshPath = Array(path.dropLast())
         showTreeAction = true
@@ -467,21 +521,19 @@ final class AppState {
     }
 
     func saveCurrentQuery() {
-        guard let idx = activeConnectionIdx,
-              let conn = savedConnections[safe: idx] else { return }
+        guard let conn = activeConnection else { return }
         let key = "\(conn.id.uuidString):\(queryDatabase)"
         if query.text.isEmpty {
-            savedQueries.removeValue(forKey: key)
+            shared.savedQueries.removeValue(forKey: key)
         } else {
-            savedQueries[key] = query.text
+            shared.savedQueries[key] = query.text
         }
-        QueryStoreIO.save(savedQueries)
+        shared.saveQueries()
     }
 
     private func loadCurrentQuery() {
-        guard let idx = activeConnectionIdx,
-              let conn = savedConnections[safe: idx] else { return }
-        query.text = savedQueries["\(conn.id.uuidString):\(queryDatabase)"] ?? ""
+        guard let conn = activeConnection else { return }
+        query.text = shared.savedQueries["\(conn.id.uuidString):\(queryDatabase)"] ?? ""
         query.selectedRange = NSRange(location: 0, length: 0)
         query.error = ""
         query.status = ""
@@ -647,7 +699,6 @@ final class AppState {
 
         var statements: [String] = []
 
-        // INSERTs for new rows
         for rowIdx in table.pendingNewRows.sorted() {
             var colEdits: [Int: String?] = [:]
             for edit in table.pendingEdits where edit.row == rowIdx {
@@ -664,7 +715,6 @@ final class AppState {
             ))
         }
 
-        // UPDATEs for existing rows with edits (not new, not deleted)
         var seen: [String: Int] = [:]
         var deduped: [PendingEdit] = []
         for edit in table.pendingEdits where !table.isNewRow(edit.row) && !table.isDeletedRow(edit.row) {
@@ -688,7 +738,6 @@ final class AppState {
             ))
         }
 
-        // DELETEs for deleted rows
         for rowIdx in table.pendingDeletes.sorted() {
             let pk: [(column: String, value: String)] = pkCols.map { i in
                 (column: columns[i].name, value: rows[rowIdx][i] ?? "")
@@ -741,6 +790,13 @@ final class AppState {
         Task { await loadTableData(path: path, offset: 0) }
     }
 
+    func refreshCurrentScope() {
+        guard connection != nil else { return }
+        let path = tree.selected ?? []
+        refreshNode(path: path)
+        refresh()
+    }
+
     // MARK: - Header actions
 
     func refresh() {
@@ -779,7 +835,6 @@ final class AppState {
 
         Task {
             do {
-                // INSERTs
                 for rowIdx in newRows.sorted() {
                     var colEdits: [Int: String?] = [:]
                     for edit in edits where edit.row == rowIdx {
@@ -797,7 +852,6 @@ final class AppState {
                     _ = try await conn.executeQuery(database: tablePath[0], sql: sql)
                 }
 
-                // UPDATEs (deduplicated — keep last edit per row+col)
                 var seen: [String: Int] = [:]
                 var deduped: [PendingEdit] = []
                 for edit in edits where !newRows.contains(edit.row) && !deletedRows.contains(edit.row) {
@@ -821,7 +875,6 @@ final class AppState {
                     )
                 }
 
-                // DELETEs
                 for rowIdx in deletedRows.sorted() {
                     let pk: [(column: String, value: String)] = pkCols.map { i in
                         (column: columns[i].name, value: rows[rowIdx][i] ?? "")
@@ -944,38 +997,70 @@ final class AppState {
 
     // MARK: - Session Persistence
 
-    func saveSession() {
-        let connId: UUID?
-        if let idx = activeConnectionIdx, let conn = savedConnections[safe: idx] {
-            connId = conn.id
-        } else {
-            connId = nil
-        }
-        let session = SessionState(
-            activeConnectionId: connId,
+    private func saveEnvironmentState() {
+        environmentSessions[selectedEnvironment] = EnvironmentSession(
+            activeConnectionId: activeConnectionId,
             selectedPath: tree.selected,
             expandedPaths: tree.expanded.isEmpty ? nil : tree.expanded,
             showInspector: showInspector,
-            showSidebar: showSidebar,
-            sidebarWidth: sidebarWidth,
             showQueryEditor: showQueryEditor
         )
-        SessionStoreIO.save(session)
     }
 
-    func restoreSession() async {
-        guard connection == nil else { return }
-        guard let session = SessionStoreIO.load() else { return }
+    func saveSession() {
+        saveEnvironmentState()
 
-        showInspector = session.showInspector
-        showSidebar = session.showSidebar
-        if let w = session.sidebarWidth { sidebarWidth = w }
+        var envDict: [String: EnvironmentSession] = [:]
+        for (key, val) in environmentSessions {
+            envDict[key.rawValue] = val
+        }
 
-        guard let connId = session.activeConnectionId,
-              let idx = savedConnections.firstIndex(where: { $0.id == connId }) else { return }
+        let tab = TabSession(
+            tabId: tabId,
+            showSidebar: showSidebar,
+            sidebarWidth: sidebarWidth,
+            selectedEnvironment: selectedEnvironment,
+            environments: envDict
+        )
+        shared.saveTabSession(tab)
+    }
 
-        let saved = savedConnections[idx]
-        activeConnectionIdx = idx
+    func switchEnvironment(to env: ConnectionEnvironment) {
+        guard env != selectedEnvironment, !connecting else { return }
+
+        saveCurrentQuery()
+        saveEnvironmentState()
+
+        connection = nil
+        tree.reset()
+        table = nil
+        structureTable = nil
+        contentMode = .empty
+        errorText = ""
+        breadcrumb = ""
+        activeConnectionId = nil
+        showInspector = false
+        showQueryEditor = false
+        queryDatabase = ""
+        query = QueryState()
+        completionSchema = nil
+
+        selectedEnvironment = env
+
+        Task {
+            await closeTunnel()
+            await restoreEnvironmentSession()
+            saveSession()
+        }
+    }
+
+    private func restoreEnvironmentSession() async {
+        guard let envSession = environmentSessions[selectedEnvironment] else { return }
+
+        guard let connId = envSession.activeConnectionId,
+              let saved = shared.savedConnections.first(where: { $0.id == connId }) else { return }
+
+        activeConnectionId = connId
         connecting = true
         let config = ConnectionConfig(
             backend: saved.backend, host: saved.host, port: saved.port,
@@ -991,6 +1076,7 @@ final class AppState {
             self.table = nil
             self.contentMode = .empty
             self.errorText = ""
+            self.showInspector = envSession.showInspector ?? false
             self.updateBreadcrumb()
             await self.loadChildren(path: [])
         } catch {
@@ -1000,7 +1086,7 @@ final class AppState {
         }
         connecting = false
 
-        if let expandedPaths = session.expandedPaths {
+        if let expandedPaths = envSession.expandedPaths {
             let sorted = expandedPaths.sorted { $0.count < $1.count }
             for path in sorted {
                 tree.expanded.insert(path)
@@ -1010,7 +1096,7 @@ final class AppState {
             }
         }
 
-        if let targetPath = session.selectedPath {
+        if let targetPath = envSession.selectedPath {
             for i in 1..<targetPath.count {
                 let prefix = Array(targetPath.prefix(i))
                 tree.expanded.insert(prefix)
@@ -1029,7 +1115,7 @@ final class AppState {
             }
         }
 
-        if session.showQueryEditor == true {
+        if envSession.showQueryEditor == true {
             showQueryEditor = true
             queryDatabase = tree.selected?.first ?? ""
             loadCurrentQuery()
@@ -1037,11 +1123,40 @@ final class AppState {
         }
     }
 
+    func restoreSession() async {
+        guard connection == nil else {
+            print("[Cove] restoreSession(\(tabId.uuidString.prefix(8))): skipped, already connected")
+            return
+        }
+        guard let tab = shared.claimNextSession() else {
+            print("[Cove] restoreSession(\(tabId.uuidString.prefix(8))): no session to claim")
+            return
+        }
+
+        print("[Cove] restoreSession(\(tabId.uuidString.prefix(8))): claimed session, env=\(tab.selectedEnvironment?.rawValue ?? "nil"), envCount=\(tab.environments?.count ?? 0)")
+
+        showSidebar = tab.showSidebar
+        if let w = tab.sidebarWidth { sidebarWidth = w }
+        if let env = tab.selectedEnvironment { selectedEnvironment = env }
+
+        if let envDict = tab.environments {
+            for (key, val) in envDict {
+                if let env = ConnectionEnvironment(rawValue: key) {
+                    environmentSessions[env] = val
+                    print("[Cove] restoreSession(\(tabId.uuidString.prefix(8))): loaded env \(key), connId=\(val.activeConnectionId?.uuidString.prefix(8) ?? "nil")")
+                }
+            }
+        }
+
+        await restoreEnvironmentSession()
+        saveSession()
+    }
+
     // MARK: - Helpers
 
     func updateBreadcrumb() {
         var result = ""
-        if let idx = activeConnectionIdx, let conn = savedConnections[safe: idx] {
+        if let conn = activeConnection {
             result += conn.name
             result += " | "
             result += conn.backend.displayName

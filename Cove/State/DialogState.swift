@@ -16,6 +16,7 @@ final class DialogState {
     var visible = false
     var editingConnectionId: UUID?
     var colorHex: String = CoveTheme.accentHex
+    var environment: ConnectionEnvironment = .local
 
     // SSH tunnel
     var sshEnabled = false
@@ -43,6 +44,7 @@ final class DialogState {
         testResult = nil
         editingConnectionId = nil
         colorHex = CoveTheme.accentHex
+        environment = .development
         sshEnabled = false
         sshHost = ""
         sshPort = "22"
