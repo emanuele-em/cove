@@ -60,6 +60,7 @@ struct ConnectionRail: View {
             )
         }
         .buttonStyle(.plain)
+        .help(conn.name)
         .contextMenu {
             if state.activeConnectionId == conn.id {
                 Button("Disconnect") {

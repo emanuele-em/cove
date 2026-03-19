@@ -17,6 +17,7 @@ struct CoveApp: App {
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate(ignoringOtherApps: true)
         UserDefaults.standard.set("WhenScrolling", forKey: "AppleShowScrollBars")
+        UserDefaults.standard.set(0, forKey: "NSInitialToolTipDelay")
     }
 
     var body: some Scene {
