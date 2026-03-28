@@ -267,7 +267,14 @@ final class AppState {
         dialog.visible = false
 
         if activeConnectionId == editId {
-            selectConnection(editId)
+            let config = ConnectionConfig(
+                backend: c.backend, host: c.host, port: c.port,
+                user: c.user, password: c.password, database: c.database,
+                sshTunnel: c.sshTunnelConfig
+            )
+            Task {
+                await performConnect(config: config)
+            }
         }
     }
 
