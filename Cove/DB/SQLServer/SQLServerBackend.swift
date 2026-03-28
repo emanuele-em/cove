@@ -5,6 +5,7 @@ import CosmoSQLCore
 final class SQLServerBackend: DatabaseBackend, @unchecked Sendable {
     let name = "SQL Server"
     private let config: ConnectionConfig
+    let initialDatabase: String
     private let lock = NSLock()
     private var pools: [String: MSSQLConnectionPool] = [:]
 
@@ -37,6 +38,7 @@ final class SQLServerBackend: DatabaseBackend, @unchecked Sendable {
 
     private init(config: ConnectionConfig) {
         self.config = config
+        self.initialDatabase = config.database
     }
 
     deinit {

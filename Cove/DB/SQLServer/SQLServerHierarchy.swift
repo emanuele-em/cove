@@ -166,9 +166,12 @@ extension SQLServerBackend {
     func listChildren(path: [String]) async throws -> [HierarchyNode] {
         switch path.count {
         case 0:
+            if !initialDatabase.isEmpty {
+                return [HierarchyNode(name: initialDatabase, icon: "cylinder.split.1x2", tint: Self.tintDatabase, isExpandable: true)]
+            }
             let pool = try getAnyPool()
             let rows = try await pool.query(
-                "SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name", []
+                "SELECT name FROM sys.databases ORDER BY name", []
             )
             return rows.compactMap { row in
                 guard let name = row.values[0].asString() else { return nil }
