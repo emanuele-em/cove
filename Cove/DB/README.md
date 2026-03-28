@@ -58,7 +58,7 @@ Capability queries map to path depth:
 
 | Style | Backends |
 |-------|----------|
-| Double-quote `"` | Postgres, ScyllaDB, Cassandra, SQLite |
+| Double-quote `"` | Postgres, ScyllaDB, Cassandra, SQLite, Oracle |
 | Backtick `` ` `` | MySQL, MariaDB |
 | None | Redis, MongoDB |
 
@@ -127,3 +127,4 @@ final class MyDBBackend: DatabaseBackend, @unchecked Sendable {
 | `Redis/` | Non-SQL backend, command-based execution, dynamic type discovery |
 | `SQLite/` | File-based backend, system module (no SPM dep), `Mutex`, PRAGMA-based introspection |
 | `MongoDB/` | Document store, shell-style commands, schema inferred from sample data |
+| `Oracle/` | Schema-based SQL backend (no per-DB connections), `withConnection` pool pattern, Oracle system views |

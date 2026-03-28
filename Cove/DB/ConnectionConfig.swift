@@ -10,6 +10,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
     case mongodb
     case sqlite
     case elasticsearch
+    case oracle
 
     var displayName: String {
         switch self {
@@ -22,6 +23,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .mongodb: "MongoDB"
         case .sqlite: "SQLite"
         case .elasticsearch: "Elasticsearch"
+        case .oracle: "Oracle"
         }
     }
 
@@ -36,6 +38,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .mongodb: "mongodb-logo"
         case .sqlite: "sqlite-logo"
         case .elasticsearch: "elasticsearch-logo"
+        case .oracle: "oracle-logo"
         }
     }
 
@@ -50,6 +53,7 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .mongodb: "27017"
         case .sqlite: "0"
         case .elasticsearch: "9200"
+        case .oracle: "1521"
         }
     }
 
@@ -149,6 +153,8 @@ func coveConnect(config: ConnectionConfig) async throws -> (any DatabaseBackend,
             backend = try await SQLiteBackend.connect(config: effectiveConfig)
         case .elasticsearch:
             backend = try await ElasticsearchBackend.connect(config: effectiveConfig)
+        case .oracle:
+            backend = try await OracleBackend.connect(config: effectiveConfig)
         }
         return (backend, tunnel)
     } catch {

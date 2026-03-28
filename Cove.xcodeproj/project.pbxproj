@@ -132,6 +132,7 @@
 				AA000083 /* NIOSSH */,
 				AA000084 /* MySQLNIO */,
 				AA000085 /* MongoKitten */,
+				AA000086 /* OracleNIO */,
 			);
 			productName = Cove;
 			productReference = AA000001 /* Cove.app */;
@@ -184,6 +185,7 @@
 				AA000073 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */,
 				AA000074 /* XCRemoteSwiftPackageReference "mysql-nio" */,
 				AA000075 /* XCRemoteSwiftPackageReference "MongoKitten" */,
+				AA000076 /* XCRemoteSwiftPackageReference "oracle-nio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA000060 /* Products */;
@@ -441,6 +443,14 @@
 				minimumVersion = 7.14.0;
 			};
 		};
+		AA000076 /* XCRemoteSwiftPackageReference "oracle-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/lovetodream/oracle-nio.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -473,6 +483,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA000075 /* XCRemoteSwiftPackageReference "MongoKitten" */;
 			productName = MongoKitten;
+		};
+		AA000086 /* OracleNIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000076 /* XCRemoteSwiftPackageReference "oracle-nio" */;
+			productName = OracleNIO;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
