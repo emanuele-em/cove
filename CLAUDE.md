@@ -1,6 +1,6 @@
 # Cove
 
-Multi-database GUI client in Swift + SwiftUI for macOS 15+. Supports PostgreSQL, ScyllaDB, Redis, MySQL, MariaDB, MongoDB, SQLite, Elasticsearch, Cassandra, Oracle, and SQL Server.
+Multi-database GUI client in Swift + SwiftUI for macOS 15+. Supports PostgreSQL, ScyllaDB, Redis, MySQL, MariaDB, MongoDB, SQLite, Elasticsearch, Cassandra, Oracle, SQL Server, ClickHouse, and DuckDB.
 
 ## Core Rule
 

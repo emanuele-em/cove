@@ -12,6 +12,8 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
     case elasticsearch
     case oracle
     case sqlserver
+    case duckdb
+    case clickhouse
 
     var displayName: String {
         switch self {
@@ -26,6 +28,8 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .elasticsearch: "Elasticsearch"
         case .oracle: "Oracle"
         case .sqlserver: "SQL Server"
+        case .duckdb: "DuckDB"
+        case .clickhouse: "ClickHouse"
         }
     }
 
@@ -42,6 +46,8 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .elasticsearch: "elasticsearch-logo"
         case .oracle: "oracle-logo"
         case .sqlserver: "sqlserver-logo"
+        case .duckdb: "duckdb-logo"
+        case .clickhouse: "clickhouse-logo"
         }
     }
 
@@ -58,12 +64,14 @@ enum BackendType: String, Codable, CaseIterable, Sendable {
         case .elasticsearch: "9200"
         case .oracle: "1521"
         case .sqlserver: "1433"
+        case .duckdb: "0"
+        case .clickhouse: "9000"
         }
     }
 
     var isFileBased: Bool {
         switch self {
-        case .sqlite: true
+        case .sqlite, .duckdb: true
         default: false
         }
     }
@@ -161,6 +169,10 @@ func coveConnect(config: ConnectionConfig) async throws -> (any DatabaseBackend,
             backend = try await OracleBackend.connect(config: effectiveConfig)
         case .sqlserver:
             backend = try await SQLServerBackend.connect(config: effectiveConfig)
+        case .duckdb:
+            backend = try await DuckDBBackend.connect(config: effectiveConfig)
+        case .clickhouse:
+            backend = try await ClickHouseBackend.connect(config: effectiveConfig)
         }
         return (backend, tunnel)
     } catch {

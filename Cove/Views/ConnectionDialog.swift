@@ -273,6 +273,7 @@ struct ConnectionDialog: View {
             .init(filenameExtension: "sqlite")!,
             .init(filenameExtension: "db")!,
             .init(filenameExtension: "sqlite3")!,
+            .init(filenameExtension: "duckdb")!,
         ]
         panel.allowsOtherFileTypes = true
         if panel.runModal() == .OK, let url = panel.url {

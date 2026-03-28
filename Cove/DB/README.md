@@ -58,9 +58,9 @@ Capability queries map to path depth:
 
 | Style | Backends |
 |-------|----------|
-| Double-quote `"` | Postgres, ScyllaDB, Cassandra, SQLite, Oracle |
+| Double-quote `"` | Postgres, ScyllaDB, Cassandra, SQLite, Oracle, DuckDB |
 | Bracket `[]` | SQL Server |
-| Backtick `` ` `` | MySQL, MariaDB |
+| Backtick `` ` `` | MySQL, MariaDB, ClickHouse |
 | None | Redis, MongoDB |
 
 ## Optional Protocol Methods
@@ -130,3 +130,5 @@ final class MyDBBackend: DatabaseBackend, @unchecked Sendable {
 | `MongoDB/` | Document store, shell-style commands, schema inferred from sample data |
 | `Oracle/` | Schema-based SQL backend (no per-DB connections), `withConnection` pool pattern, Oracle system views |
 | `SQLServer/` | Multi-database + schema SQL backend, bracket quoting, T-SQL system views, `SQLValue` enum decoding |
+| `ClickHouse/` | Column-oriented OLAP backend, `ALTER TABLE` mutations for UPDATE/DELETE, columnar→row transpose, ClickHouseNIO `EventLoopFuture` bridging |
+| `DuckDB/` | File-based analytical DB, C API via system library (like SQLite), `information_schema` introspection, `duckdb_value_varchar` for type conversion |

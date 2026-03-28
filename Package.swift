@@ -13,6 +13,7 @@ let package = Package(
         .package(url: "https://github.com/orlandos-nl/MongoKitten.git", from: "7.14.0"),
         .package(url: "https://github.com/lovetodream/oracle-nio.git", from: "1.0.0-rc.1"),
         .package(url: "https://github.com/vkuttyp/CosmoSQLClient-Swift.git", branch: "main"),
+        .package(url: "https://github.com/patrick-zippenfenig/ClickHouseNIO.git", from: "1.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -25,11 +26,20 @@ let package = Package(
                 .product(name: "MongoKitten", package: "MongoKitten"),
                 .product(name: "OracleNIO", package: "oracle-nio"),
                 .product(name: "CosmoMSSQL", package: "CosmoSQLClient-Swift"),
+                .product(name: "ClickHouseNIO", package: "ClickHouseNIO"),
+                "CDuckDB",
             ],
             path: "Cove",
             swiftSettings: [
                 .swiftLanguageMode(.v6),
+            ],
+            linkerSettings: [
+                .unsafeFlags(["-L/opt/homebrew/lib"]),
             ]
+        ),
+        .systemLibrary(
+            name: "CDuckDB",
+            path: "Sources/CDuckDB"
         ),
     ]
 )

@@ -134,6 +134,7 @@
 				AA000085 /* MongoKitten */,
 				AA000086 /* OracleNIO */,
 				AA000087 /* CosmoMSSQL */,
+				AA000088 /* ClickHouseNIO */,
 			);
 			productName = Cove;
 			productReference = AA000001 /* Cove.app */;
@@ -188,6 +189,7 @@
 				AA000075 /* XCRemoteSwiftPackageReference "MongoKitten" */,
 				AA000076 /* XCRemoteSwiftPackageReference "oracle-nio" */,
 				AA000077 /* XCRemoteSwiftPackageReference "CosmoSQLClient-Swift" */,
+				AA000078 /* XCRemoteSwiftPackageReference "ClickHouseNIO" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA000060 /* Products */;
@@ -236,17 +238,33 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/opt/homebrew/include",
+				);
 				INFOPLIST_FILE = Cove/Info.plist;
 				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/opt/homebrew/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lduckdb",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/CDuckDB",
+				);
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
@@ -261,17 +279,33 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"/opt/homebrew/include",
+				);
 				INFOPLIST_FILE = Cove/Info.plist;
 				INFOPLIST_KEY_NSMainStoryboardFile = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"/opt/homebrew/lib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.1;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lduckdb",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Sources/CDuckDB",
+				);
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
@@ -461,6 +495,14 @@
 				kind = branch;
 			};
 		};
+		AA000078 /* XCRemoteSwiftPackageReference "ClickHouseNIO" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/patrick-zippenfenig/ClickHouseNIO.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -503,6 +545,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AA000077 /* XCRemoteSwiftPackageReference "CosmoSQLClient-Swift" */;
 			productName = CosmoMSSQL;
+		};
+		AA000088 /* ClickHouseNIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA000078 /* XCRemoteSwiftPackageReference "ClickHouseNIO" */;
+			productName = ClickHouseNIO;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
