@@ -1,42 +1,43 @@
 import Foundation
 
-// Path structure (same as SQLite/ScyllaDB):
-// []                                → schemas
-// [schema]                          → groups (Tables, Views, …)
-// [schema, group]                   → items in group
-// [schema, "Tables", table]         → sub-groups (Columns, Indexes, …)
-// [schema, "Tables", table, subgrp] → elements
+// Path structure (catalog.schema.table – mirrors Postgres):
+// []                                               → catalogs
+// [catalog]                                        → schemas
+// [catalog, schema]                                → groups (Tables, Views, …)
+// [catalog, schema, group]                         → items in group
+// [catalog, schema, "Tables", table]               → sub-groups (Columns, Indexes)
+// [catalog, schema, "Tables", table, subgrp]       → elements
 
 extension DuckDBBackend {
-    private static let tintSchema   = NodeTint(r: 0.773, g: 0.525, b: 0.753)
-    private static let tintTable    = NodeTint(r: 0.420, g: 0.624, b: 0.800)
-    private static let tintView     = NodeTint(r: 0.863, g: 0.863, b: 0.667)
-    private static let tintGroup    = NodeTint(r: 0.60, g: 0.60, b: 0.60)
-    private static let tintIndex    = NodeTint(r: 0.400, g: 0.694, b: 0.659)
-    private static let tintSequence = NodeTint(r: 0.529, g: 0.753, b: 0.518)
-    private static let tintFunction = NodeTint(r: 0.694, g: 0.506, b: 0.804)
-    private static let tintType     = NodeTint(r: 0.878, g: 0.647, b: 0.412)
-    private static let tintColumn   = NodeTint(r: 0.545, g: 0.659, b: 0.780)
-    private static let tintKey      = NodeTint(r: 0.835, g: 0.718, b: 0.392)
+    private static let tintCatalog   = NodeTint(r: 0.357, g: 0.608, b: 0.835)
+    private static let tintSchema    = NodeTint(r: 0.773, g: 0.525, b: 0.753)
+    private static let tintTable     = NodeTint(r: 0.420, g: 0.624, b: 0.800)
+    private static let tintView      = NodeTint(r: 0.863, g: 0.863, b: 0.667)
+    private static let tintGroup     = NodeTint(r: 0.60, g: 0.60, b: 0.60)
+    private static let tintIndex     = NodeTint(r: 0.400, g: 0.694, b: 0.659)
+    private static let tintSequence  = NodeTint(r: 0.529, g: 0.753, b: 0.518)
+    private static let tintFunction  = NodeTint(r: 0.694, g: 0.506, b: 0.804)
+    private static let tintColumn    = NodeTint(r: 0.545, g: 0.659, b: 0.780)
+    private static let tintKey       = NodeTint(r: 0.835, g: 0.718, b: 0.392)
 
     func isDataBrowsable(path: [String]) -> Bool {
-        path.count == 3 && ["Tables", "Views"].contains(path[1])
+        path.count == 4 && ["Tables", "Views"].contains(path[2])
     }
 
     func isEditable(path: [String]) -> Bool {
-        !isReadOnly && path.count == 3 && path[1] == "Tables"
+        !isReadOnly && path.count == 4 && path[2] == "Tables"
     }
 
     func isStructureEditable(path: [String]) -> Bool {
-        !isReadOnly && path.count >= 4 && path[1] == "Tables" && path[3] == "Indexes"
+        !isReadOnly && path.count >= 5 && path[2] == "Tables" && path[4] == "Indexes"
     }
 
     func creatableChildLabel(path: [String]) -> String? {
         guard !isReadOnly else { return nil }
         switch path.count {
-        case 0: return "Schema"
-        case 2:
-            switch path[1] {
+        case 1: return "Schema"
+        case 3:
+            switch path[2] {
             case "Tables": return "Table"
             case "Views": return "View"
             case "Sequences": return "Sequence"
@@ -58,12 +59,12 @@ extension DuckDBBackend {
     func createFormFields(path: [String]) -> [CreateField] {
         guard !isReadOnly else { return [] }
         switch path.count {
-        case 0:
+        case 1:
             return [
                 CreateField(id: "name", label: "Name", defaultValue: "", placeholder: "my_schema"),
             ]
-        case 2:
-            switch path[1] {
+        case 3:
+            switch path[2] {
             case "Tables":
                 return [
                     CreateField(id: "name", label: "Table Name", defaultValue: "", placeholder: "my_table"),
@@ -97,11 +98,11 @@ extension DuckDBBackend {
         let q = quoteIdentifier(name)
 
         switch path.count {
-        case 0:
-            return "CREATE SCHEMA \(q)"
-        case 2:
-            let fqn = "\(quoteIdentifier(path[0])).\(q)"
-            switch path[1] {
+        case 1:
+            return "CREATE SCHEMA \(quoteIdentifier(path[0])).\(q)"
+        case 3:
+            let fqn = "\(quoteIdentifier(path[0])).\(quoteIdentifier(path[1])).\(q)"
+            switch path[2] {
             case "Tables":
                 let col = values["column", default: "id"]
                 let type = values["type", default: "INTEGER"]
@@ -127,8 +128,8 @@ extension DuckDBBackend {
     func isDeletable(path: [String]) -> Bool {
         guard !isReadOnly else { return false }
         switch path.count {
-        case 1: return true
-        case 3: return ["Tables", "Views", "Sequences"].contains(path[1])
+        case 2: return true
+        case 4: return ["Tables", "Views", "Sequences"].contains(path[2])
         default: return false
         }
     }
@@ -136,11 +137,11 @@ extension DuckDBBackend {
     func generateDropSQL(path: [String]) -> String? {
         guard !isReadOnly else { return nil }
         switch path.count {
-        case 1:
-            return "DROP SCHEMA \(quoteIdentifier(path[0])) CASCADE"
-        case 3:
-            let fqn = "\(quoteIdentifier(path[0])).\(quoteIdentifier(path[2]))"
-            switch path[1] {
+        case 2:
+            return "DROP SCHEMA \(quoteIdentifier(path[0])).\(quoteIdentifier(path[1])) CASCADE"
+        case 4:
+            let fqn = "\(quoteIdentifier(path[0])).\(quoteIdentifier(path[1])).\(quoteIdentifier(path[3]))"
+            switch path[2] {
             case "Tables":    return "DROP TABLE \(fqn)"
             case "Views":     return "DROP VIEW \(fqn)"
             case "Sequences": return "DROP SEQUENCE \(fqn)"
@@ -155,14 +156,24 @@ extension DuckDBBackend {
         switch path.count {
         case 0:
             let result = try await runQuery(
-                "SELECT DISTINCT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name"
+                "SELECT database_name FROM duckdb_databases() WHERE NOT internal ORDER BY database_name"
+            )
+            return result.rows.compactMap { row in
+                guard let name = row.first ?? nil else { return nil }
+                return HierarchyNode(name: name, icon: "externaldrive", tint: Self.tintCatalog, isExpandable: true)
+            }
+
+        case 1:
+            let catalog = path[0]
+            let result = try await runQuery(
+                "SELECT schema_name FROM duckdb_schemas() WHERE database_name = '\(catalog)' AND schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name"
             )
             return result.rows.compactMap { row in
                 guard let name = row.first ?? nil else { return nil }
                 return HierarchyNode(name: name, icon: "square.grid.2x2", tint: Self.tintSchema, isExpandable: true)
             }
 
-        case 1:
+        case 2:
             return [
                 HierarchyNode(name: "Tables", icon: "folder", tint: Self.tintGroup, isExpandable: true),
                 HierarchyNode(name: "Views", icon: "folder", tint: Self.tintGroup, isExpandable: true),
@@ -170,35 +181,36 @@ extension DuckDBBackend {
                 HierarchyNode(name: "Functions", icon: "folder", tint: Self.tintGroup, isExpandable: true),
             ]
 
-        case 2:
-            let schema = path[0]
-            switch path[1] {
+        case 3:
+            let catalog = path[0]
+            let schema = path[1]
+            switch path[2] {
             case "Tables":
                 return try await queryNodeList(
-                    sql: "SELECT table_name FROM information_schema.tables WHERE table_schema = '\(schema)' AND table_type = 'BASE TABLE' ORDER BY table_name",
+                    sql: "SELECT table_name FROM duckdb_tables() WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' ORDER BY table_name",
                     icon: "tablecells", tint: Self.tintTable, expandable: true
                 )
             case "Views":
                 return try await queryNodeList(
-                    sql: "SELECT table_name FROM information_schema.tables WHERE table_schema = '\(schema)' AND table_type = 'VIEW' ORDER BY table_name",
+                    sql: "SELECT view_name FROM duckdb_views() WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' ORDER BY view_name",
                     icon: "eye", tint: Self.tintView, expandable: true
                 )
             case "Sequences":
                 return try await queryNodeList(
-                    sql: "SELECT sequence_name FROM duckdb_sequences() WHERE schema_name = '\(schema)' ORDER BY sequence_name",
+                    sql: "SELECT sequence_name FROM duckdb_sequences() WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' ORDER BY sequence_name",
                     icon: "number", tint: Self.tintSequence, expandable: false
                 )
             case "Functions":
                 return try await queryNodeList(
-                    sql: "SELECT DISTINCT function_name FROM duckdb_functions() WHERE schema_name = '\(schema)' AND function_type = 'scalar' AND NOT internal ORDER BY function_name",
+                    sql: "SELECT DISTINCT function_name FROM duckdb_functions() WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' AND function_type = 'scalar' AND NOT internal ORDER BY function_name",
                     icon: "function", tint: Self.tintFunction, expandable: false
                 )
             default:
-                throw DbError.other("unknown group: \(path[1])")
+                throw DbError.other("unknown group: \(path[2])")
             }
 
-        case 3:
-            switch path[1] {
+        case 4:
+            switch path[2] {
             case "Tables":
                 return [
                     HierarchyNode(name: "Columns", icon: "folder", tint: Self.tintGroup, isExpandable: true),
@@ -212,15 +224,16 @@ extension DuckDBBackend {
                 return []
             }
 
-        case 4:
-            let schema = path[0]
-            let relation = path[2]
-            switch path[3] {
+        case 5:
+            let catalog = path[0]
+            let schema = path[1]
+            let relation = path[3]
+            switch path[4] {
             case "Columns":
-                return try await fetchTreeColumns(schema: schema, relation: relation)
+                return try await fetchTreeColumns(catalog: catalog, schema: schema, relation: relation)
             case "Indexes":
                 return try await queryNodeList(
-                    sql: "SELECT DISTINCT index_name FROM duckdb_indexes() WHERE schema_name = '\(schema)' AND table_name = '\(relation)' ORDER BY index_name",
+                    sql: "SELECT DISTINCT index_name FROM duckdb_indexes() WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' AND table_name = '\(relation)' ORDER BY index_name",
                     icon: "arrow.up.arrow.down", tint: Self.tintIndex, expandable: false
                 )
             default:
@@ -233,18 +246,19 @@ extension DuckDBBackend {
     }
 
     func fetchNodeDetails(path: [String]) async throws -> QueryResult {
-        guard path.count >= 2 else {
+        guard path.count >= 3 else {
             return QueryResult(columns: [], rows: [], rowsAffected: nil, totalCount: nil)
         }
 
-        let schema = path[0]
+        let catalog = path[0]
+        let schema = path[1]
 
         let sql: String
         switch path.count {
-        case 2, 3:
-            sql = groupDetailSQL(schema: schema, group: path[1])
-        case 4:
-            sql = subGroupDetailSQL(schema: schema, relation: path[2], subGroup: path[3])
+        case 3, 4:
+            sql = groupDetailSQL(catalog: catalog, schema: schema, group: path[2])
+        case 5:
+            sql = subGroupDetailSQL(catalog: catalog, schema: schema, relation: path[3], subGroup: path[4])
         default:
             return QueryResult(columns: [], rows: [], rowsAffected: nil, totalCount: nil)
         }
@@ -265,8 +279,8 @@ extension DuckDBBackend {
         }
     }
 
-    private func fetchTreeColumns(schema: String, relation: String) async throws -> [HierarchyNode] {
-        let columns = try await fetchColumnInfo(schema: schema, table: relation)
+    private func fetchTreeColumns(catalog: String, schema: String, relation: String) async throws -> [HierarchyNode] {
+        let columns = try await fetchColumnInfo(catalog: catalog, schema: schema, table: relation)
         return columns.map { col in
             HierarchyNode(
                 name: "\(col.name) : \(col.typeName)",
@@ -277,21 +291,21 @@ extension DuckDBBackend {
         }
     }
 
-    private func groupDetailSQL(schema: String, group: String) -> String {
+    private func groupDetailSQL(catalog: String, schema: String, group: String) -> String {
         switch group {
         case "Tables":
             return """
                 SELECT table_name AS "Table" \
-                FROM information_schema.tables \
-                WHERE table_schema = '\(schema)' AND table_type = 'BASE TABLE' \
+                FROM duckdb_tables() \
+                WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' \
                 ORDER BY table_name
                 """
         case "Views":
             return """
-                SELECT table_name AS "View" \
-                FROM information_schema.tables \
-                WHERE table_schema = '\(schema)' AND table_type = 'VIEW' \
-                ORDER BY table_name
+                SELECT view_name AS "View" \
+                FROM duckdb_views() \
+                WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' \
+                ORDER BY view_name
                 """
         case "Sequences":
             return """
@@ -301,7 +315,7 @@ extension DuckDBBackend {
                 min_value AS "Min", \
                 max_value AS "Max" \
                 FROM duckdb_sequences() \
-                WHERE schema_name = '\(schema)' \
+                WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' \
                 ORDER BY sequence_name
                 """
         default:
@@ -309,7 +323,7 @@ extension DuckDBBackend {
         }
     }
 
-    private func subGroupDetailSQL(schema: String, relation: String, subGroup: String) -> String {
+    private func subGroupDetailSQL(catalog: String, schema: String, relation: String, subGroup: String) -> String {
         switch subGroup {
         case "Columns":
             return """
@@ -317,9 +331,9 @@ extension DuckDBBackend {
                 data_type AS "Type", \
                 is_nullable AS "Nullable", \
                 column_default AS "Default" \
-                FROM information_schema.columns \
-                WHERE table_schema = '\(schema)' AND table_name = '\(relation)' \
-                ORDER BY ordinal_position
+                FROM duckdb_columns() \
+                WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' AND table_name = '\(relation)' \
+                ORDER BY column_index
                 """
         case "Indexes":
             return """
@@ -327,7 +341,7 @@ extension DuckDBBackend {
                 is_unique AS "Unique", \
                 is_primary AS "Primary" \
                 FROM duckdb_indexes() \
-                WHERE schema_name = '\(schema)' AND table_name = '\(relation)' \
+                WHERE database_name = '\(catalog)' AND schema_name = '\(schema)' AND table_name = '\(relation)' \
                 ORDER BY index_name
                 """
         default:

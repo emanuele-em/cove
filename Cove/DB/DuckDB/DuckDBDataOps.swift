@@ -8,15 +8,16 @@ extension DuckDBBackend {
         offset: UInt32,
         sort: (column: String, direction: SortDirection)?
     ) async throws -> QueryResult {
-        guard path.count == 3 else {
-            throw DbError.invalidPath(expected: 3, got: path.count)
+        guard path.count == 4 else {
+            throw DbError.invalidPath(expected: 4, got: path.count)
         }
 
-        let schema = path[0]
-        let table = path[2]
-        let fqn = "\(quoteIdentifier(schema)).\(quoteIdentifier(table))"
+        let catalog = path[0]
+        let schema = path[1]
+        let table = path[3]
+        let fqn = "\(quoteIdentifier(catalog)).\(quoteIdentifier(schema)).\(quoteIdentifier(table))"
 
-        let columns = try await fetchColumnInfo(schema: schema, table: table)
+        let columns = try await fetchColumnInfo(catalog: catalog, schema: schema, table: table)
 
         var orderClause = ""
         if let sort {
@@ -49,8 +50,8 @@ extension DuckDBBackend {
         column: String,
         newValue: String?
     ) async throws {
-        guard tablePath.count == 3 else {
-            throw DbError.invalidPath(expected: 3, got: tablePath.count)
+        guard tablePath.count == 4 else {
+            throw DbError.invalidPath(expected: 4, got: tablePath.count)
         }
         guard !isReadOnly else {
             throw DbError.other("DuckDB over SSH is read-only for now")
@@ -62,12 +63,12 @@ extension DuckDBBackend {
 
     func fetchCompletionSchema(database: String) async throws -> CompletionSchema {
         let schemaResult = try await runQuery(
-            "SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name"
+            "SELECT schema_name FROM duckdb_schemas() WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name"
         )
         let schemas = schemaResult.rows.compactMap { $0.first ?? nil }
 
         let colResult = try await runQuery(
-            "SELECT table_schema, table_name, column_name, data_type FROM information_schema.columns WHERE table_schema NOT IN ('information_schema', 'pg_catalog') ORDER BY table_schema, table_name, ordinal_position"
+            "SELECT schema_name, table_name, column_name, data_type FROM duckdb_columns() WHERE schema_name NOT IN ('information_schema', 'pg_catalog') ORDER BY schema_name, table_name, column_index"
         )
         var tableMap: [String: [String: [CompletionColumn]]] = [:]
         for row in colResult.rows {
@@ -88,21 +89,22 @@ extension DuckDBBackend {
         }
 
         let funcResult = try await runQuery(
-            "SELECT DISTINCT function_name FROM duckdb_functions() WHERE schema_name NOT IN ('information_schema', 'pg_catalog') AND function_type = 'scalar' ORDER BY function_name"
+            "SELECT DISTINCT function_name FROM duckdb_functions() WHERE schema_name NOT IN ('information_schema', 'pg_catalog') AND function_type = 'scalar' AND NOT internal ORDER BY function_name"
         )
         let functions = funcResult.rows.compactMap { $0.first ?? nil }
 
         return CompletionSchema(schemas: schemas, tables: tables, functions: functions, types: [])
     }
 
-    func fetchColumnInfo(schema: String, table: String) async throws -> [ColumnInfo] {
+    func fetchColumnInfo(catalog: String, schema: String, table: String) async throws -> [ColumnInfo] {
+        let catQ = quoteIdentifier(catalog)
         let sql = """
             SELECT c.column_name, c.data_type, \
             CASE WHEN tc.constraint_type = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_pk \
-            FROM information_schema.columns c \
-            LEFT JOIN information_schema.key_column_usage kcu \
+            FROM \(catQ).information_schema.columns c \
+            LEFT JOIN \(catQ).information_schema.key_column_usage kcu \
             ON c.table_schema = kcu.table_schema AND c.table_name = kcu.table_name AND c.column_name = kcu.column_name \
-            LEFT JOIN information_schema.table_constraints tc \
+            LEFT JOIN \(catQ).information_schema.table_constraints tc \
             ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema \
             AND tc.constraint_type = 'PRIMARY KEY' \
             WHERE c.table_schema = '\(schema)' AND c.table_name = '\(table)' \

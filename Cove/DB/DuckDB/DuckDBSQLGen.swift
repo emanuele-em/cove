@@ -59,19 +59,18 @@ extension DuckDBBackend {
             return "-- DuckDB over SSH is read-only for now"
         }
 
-        let schema = path[0]
         let escaped = elementName.replacingOccurrences(of: "\"", with: "\"\"")
-        switch path[3] {
+        switch path[4] {
         case "Indexes":
-            return "DROP INDEX \"\(schema)\".\"\(escaped)\""
+            return "DROP INDEX \(quoteIdentifier(path[0])).\(quoteIdentifier(path[1])).\"\(escaped)\""
         default:
-            return "-- unsupported element type: \(path[3])"
+            return "-- unsupported element type: \(path[4])"
         }
     }
 
     private func fqnFrom(_ tablePath: [String]) -> String {
-        guard tablePath.count >= 3 else { return "-- invalid path" }
-        return "\(quoteIdentifier(tablePath[0])).\(quoteIdentifier(tablePath[2]))"
+        guard tablePath.count >= 4 else { return "-- invalid path" }
+        return "\(quoteIdentifier(tablePath[0])).\(quoteIdentifier(tablePath[1])).\(quoteIdentifier(tablePath[3]))"
     }
 
     private func whereClause(_ primaryKey: [(column: String, value: String)]) -> String {
