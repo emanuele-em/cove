@@ -97,18 +97,19 @@ extension DuckDBBackend {
     }
 
     func fetchColumnInfo(catalog: String, schema: String, table: String) async throws -> [ColumnInfo] {
-        let catQ = quoteIdentifier(catalog)
         let sql = """
             SELECT c.column_name, c.data_type, \
-            CASE WHEN tc.constraint_type = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_pk \
-            FROM \(catQ).information_schema.columns c \
-            LEFT JOIN \(catQ).information_schema.key_column_usage kcu \
-            ON c.table_schema = kcu.table_schema AND c.table_name = kcu.table_name AND c.column_name = kcu.column_name \
-            LEFT JOIN \(catQ).information_schema.table_constraints tc \
-            ON kcu.constraint_name = tc.constraint_name AND kcu.table_schema = tc.table_schema \
-            AND tc.constraint_type = 'PRIMARY KEY' \
-            WHERE c.table_schema = '\(schema)' AND c.table_name = '\(table)' \
-            ORDER BY c.ordinal_position
+            CASE WHEN pk.column_name IS NOT NULL THEN 1 ELSE 0 END AS is_pk \
+            FROM duckdb_columns() c \
+            LEFT JOIN ( \
+              SELECT UNNEST(con.constraint_column_names) AS column_name \
+              FROM duckdb_constraints() con \
+              WHERE con.database_name = '\(catalog)' AND con.schema_name = '\(schema)' \
+              AND con.table_name = '\(table)' AND con.constraint_type = 'PRIMARY KEY' \
+            ) pk ON c.column_name = pk.column_name \
+            WHERE c.database_name = '\(catalog)' AND c.schema_name = '\(schema)' \
+            AND c.table_name = '\(table)' \
+            ORDER BY c.column_index
             """
         let result = try await runQuery(sql)
         return result.rows.compactMap { row in
