@@ -12,6 +12,20 @@
 5. Add factory case in `coveConnect()` in `ConnectionConfig.swift`
 6. Add driver dependency via SPM (skip if using a system module like SQLite3)
 
+## DuckDB Native Library
+
+DuckDB ships `libduckdb.dylib` inside `Vendor/` rather than as an SPM dependency. The official
+[duckdb-swift](https://github.com/duckdb/duckdb-swift) package exists but has two blockers: it
+only exposes a synchronous API (no async/await), and it has never published a stable release (only auto-generated dev tags) —
+making it unsafe to pin as a dependency (a breaking commit could land at any time). A build phase script copies the dylib into the app
+bundle, rewrites its install name with `install_name_tool`, and re-signs it with an ad-hoc
+signature so macOS accepts it.
+
+To update DuckDB, replace `Vendor/libduckdb.dylib` and `Sources/CDuckDB/include/duckdb.h` with
+the new versions from the [DuckDB releases page](https://github.com/duckdb/duckdb/releases)
+(`libduckdb-osx-universal.zip` contains both). Once `duckdb-swift` ships tagged releases and
+async support, migrating to it would eliminate all of this.
+
 ## File Split Convention
 
 Split into extensions by concern, one file each:
@@ -151,4 +165,4 @@ final class MyDBBackend: DatabaseBackend, @unchecked Sendable {
 | `Oracle/` | Schema-based SQL backend (no per-DB connections), `withConnection` pool pattern, Oracle system views |
 | `SQLServer/` | Multi-database + schema SQL backend, bracket quoting, T-SQL system views, `SQLValue` enum decoding |
 | `ClickHouse/` | Column-oriented OLAP backend, `ALTER TABLE` mutations for UPDATE/DELETE, columnar→row transpose, ClickHouseNIO `EventLoopFuture` bridging |
-| `DuckDB/` | File-based analytical DB with local/SSH execution, C API via system library, `information_schema` introspection |
+| `DuckDB/` | File-based analytical DB with local/SSH execution, raw C API, `duckdb_columns()`/`duckdb_constraints()` for introspection |
