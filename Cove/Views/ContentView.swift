@@ -124,8 +124,6 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Toolbar
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         @Bindable var state = state
@@ -192,8 +190,6 @@ struct ContentView: View {
             .disabled(!canInspect)
         }
     }
-
-    // MARK: - Content
 
     @ViewBuilder
     private var contentArea: some View {

@@ -38,8 +38,6 @@ struct SidebarView: View {
     }
 }
 
-// MARK: - Create sheet with form fields + live SQL preview
-
 struct CreateChildSheet: View {
     @Environment(AppState.self) private var state
     @Environment(\.dismiss) private var dismiss
@@ -133,8 +131,6 @@ struct CreateChildSheet: View {
         )
     }
 }
-
-// MARK: - Drop confirmation sheet with SQL preview
 
 struct DropConfirmSheet: View {
     @Environment(AppState.self) private var state

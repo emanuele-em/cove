@@ -22,7 +22,6 @@ enum SQLHighlighter {
         var i = 0
 
         while i < len {
-            // Line comment
             if i + 1 < len && chars[i] == 0x2D && chars[i + 1] == 0x2D { // --
                 let start = i
                 while i < len && chars[i] != 0x0A { i += 1 }
@@ -30,7 +29,6 @@ enum SQLHighlighter {
                 continue
             }
 
-            // Block comment
             if i + 1 < len && chars[i] == 0x2F && chars[i + 1] == 0x2A { // /*
                 let start = i
                 i += 2
@@ -40,7 +38,6 @@ enum SQLHighlighter {
                 continue
             }
 
-            // String literal
             if chars[i] == 0x27 { // '
                 let start = i
                 i += 1
@@ -50,7 +47,6 @@ enum SQLHighlighter {
                 continue
             }
 
-            // Number
             if isDigit(chars[i]) || (chars[i] == 0x2E && i + 1 < len && isDigit(chars[i + 1])) {
                 let start = i
                 while i < len && (isDigit(chars[i]) || chars[i] == 0x2E) { i += 1 }
@@ -58,7 +54,6 @@ enum SQLHighlighter {
                 continue
             }
 
-            // Word
             if isAlpha(chars[i]) || chars[i] == 0x5F { // _
                 let start = i
                 while i < len && (isAlphaNum(chars[i]) || chars[i] == 0x5F) { i += 1 }

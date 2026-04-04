@@ -24,7 +24,6 @@ enum ConnectionStoreIO {
         // Migration: check if old JSON had passwords inline
         let needsMigration = migratePasswordsIfNeeded(data: data, store: &store)
 
-        // Hydrate passwords from Keychain
         for i in store.connections.indices {
             store.connections[i].loadPasswords()
         }
@@ -42,7 +41,6 @@ enum ConnectionStoreIO {
             let dir = url.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
-            // Save passwords to Keychain
             for conn in store.connections {
                 conn.savePasswords()
             }

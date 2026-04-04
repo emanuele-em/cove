@@ -66,8 +66,6 @@ struct PerWindowSetup: NSViewRepresentable {
     }
 }
 
-// MARK: - FocusedValue key for per-tab AppState
-
 extension FocusedValues {
     @Entry var appState: AppState?
 }

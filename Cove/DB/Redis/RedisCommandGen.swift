@@ -112,13 +112,11 @@ extension RedisBackend {
         guard tablePath.count >= 2 else { return "-- invalid path" }
         let group = tablePath[1]
 
-        // At key-list level (path count 2), delete the whole key
         if tablePath.count == 2 {
             let key = primaryKey.first(where: { $0.column == "Key" })?.value ?? ""
             return "DEL \(key)"
         }
 
-        // At element level (path count 3), delete the element from the key
         let key = tablePath[2]
         switch group {
         case "Strings":

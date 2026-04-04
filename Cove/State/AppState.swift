@@ -299,7 +299,6 @@ final class AppState {
         shared.saveConnections()
         connectionToDelete = nil
 
-        // Disconnect other tabs that were using this connection
         shared.handleConnectionDeleted(id: conn.id)
     }
 

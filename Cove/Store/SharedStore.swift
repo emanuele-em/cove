@@ -54,8 +54,6 @@ final class SharedStore {
         persistAllSessions()
     }
 
-    // MARK: - Persistence
-
     func saveConnections() {
         ConnectionStoreIO.save(ConnectionStore(connections: savedConnections))
     }
@@ -110,8 +108,6 @@ final class SharedStore {
         let remaining = tabSessions.keys.filter { !seen.contains($0) }
         return (orderedIds + remaining).compactMap { tabSessions[$0] }
     }
-
-    // MARK: - Cross-tab safety
 
     func handleConnectionDeleted(id: UUID) {
         for (_, state) in activeTabs where state.activeConnectionId == id {

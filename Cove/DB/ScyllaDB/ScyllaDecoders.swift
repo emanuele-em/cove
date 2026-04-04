@@ -276,7 +276,6 @@ extension ScyllaBackend {
             }
             offset += extraBytes + 1
         }
-        // Zigzag decode
         return (raw >> 1) ^ -(raw & 1)
     }
 

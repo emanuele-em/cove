@@ -62,8 +62,6 @@ struct DataTableView: View {
         }
     }
 
-    // MARK: - Keyboard
-
     private func handleKeyPress(_ keyPress: KeyPress) -> KeyPress.Result {
         let key = keyPress.key
         let mods = keyPress.modifiers
@@ -117,8 +115,6 @@ struct DataTableView: View {
             .padding(16)
         }
     }
-
-    // MARK: - Pagination
 
     private var paginationFooter: some View {
         HStack {

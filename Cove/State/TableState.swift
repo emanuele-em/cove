@@ -58,8 +58,6 @@ final class TableState {
         return effectiveValue(row: row, col: col)
     }
 
-    // MARK: - Navigation
-
     func selectUp() {
         guard !rows.isEmpty else { return }
         if let row = selectedRow {

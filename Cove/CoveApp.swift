@@ -54,12 +54,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Style all existing windows
         for window in NSApp.windows {
             styleWindow(window)
         }
 
-        // Style any future windows (new tabs)
         windowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
             object: nil, queue: .main
@@ -68,7 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.styleWindow(window)
         }
 
-        // Restore additional tabs
         let count = SharedStore.shared.savedTabCount
         guard count > 1 else { return }
 

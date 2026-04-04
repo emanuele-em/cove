@@ -128,11 +128,7 @@ final class CompletionPopup: NSObject, NSTableViewDataSource, NSTableViewDelegat
         onAccept?(item)
     }
 
-    // MARK: - NSTableViewDataSource
-
     func numberOfRows(in tableView: NSTableView) -> Int { items.count }
-
-    // MARK: - NSTableViewDelegate
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let item = items[row]
@@ -181,8 +177,6 @@ final class CompletionPopup: NSObject, NSTableViewDataSource, NSTableViewDelegat
     }
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { 22 }
-
-    // MARK: - Kind appearance
 
     private func iconName(for kind: CompletionKind) -> String {
         switch kind {

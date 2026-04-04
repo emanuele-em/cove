@@ -2,18 +2,15 @@ import SwiftUI
 import AppKit
 
 enum CoveTheme {
-    // Backgrounds
     static let bg         = Color(nsColor: .windowBackgroundColor)
     static let bgAlt      = Color(nsColor: .controlBackgroundColor)
     static let bgSubtle   = Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
     static let bgHover    = Color(nsColor: .quaternaryLabelColor)
     static let bgSelected = Color(nsColor: .selectedContentBackgroundColor)
 
-    // Foreground
     static let fg         = Color.primary
     static let fgDim      = Color.secondary
 
-    // Chrome
     static let border     = Color(nsColor: .separatorColor)
     static let accent     = Color.accentColor
     static let error      = Color.red

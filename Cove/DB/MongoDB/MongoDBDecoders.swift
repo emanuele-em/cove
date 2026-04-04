@@ -194,7 +194,6 @@ extension MongoDBBackend {
         var keyOrder: [String] = []
         var keySet = Set<String>()
 
-        // Always put _id first
         keyOrder.append("_id")
         keySet.insert("_id")
 

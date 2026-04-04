@@ -21,7 +21,6 @@ enum CompletionEngine {
             return []
         }
 
-        // Find the word being typed
         var wordStart = cursorPos
         while wordStart > 0 && isIdent(chars[wordStart - 1]) {
             wordStart -= 1
@@ -31,7 +30,6 @@ enum CompletionEngine {
             ? (text as NSString).substring(with: NSRange(location: wordStart, length: cursorPos - wordStart)).lowercased()
             : ""
 
-        // Dot-access: schema.table, table.column, or alias.column
         if wordStart > 0 && chars[wordStart - 1] == 0x2E {
             var beforeDot = wordStart - 1
             while beforeDot > 0 && isIdent(chars[beforeDot - 1]) { beforeDot -= 1 }
@@ -93,7 +91,6 @@ enum CompletionEngine {
         while i < tokens.count {
             if fromKeywords.contains(tokens[i].uppercased()) {
                 i += 1
-                // Process comma-separated table references
                 while i < tokens.count {
                     let upper = tokens[i].uppercased()
                     if stopKeywords.contains(upper) || fromKeywords.contains(upper) { break }
@@ -170,7 +167,6 @@ enum CompletionEngine {
         schema: CompletionSchema,
         aliases: [String: String]
     ) -> [CompletionItem] {
-        // Schema.table
         if let schemaKey = schema.schemas.first(where: { $0.lowercased() == qualifier }),
            let tables = schema.tables[schemaKey] {
             return tables
@@ -178,10 +174,8 @@ enum CompletionEngine {
                 .map { CompletionItem(label: $0.name, detail: "table", kind: .table, insertText: $0.name) }
         }
 
-        // Resolve alias → real table name
         let resolvedName = aliases[qualifier] ?? qualifier
 
-        // Table.column (or alias.column)
         for (_, tables) in schema.tables {
             if let table = tables.first(where: { $0.name.lowercased() == resolvedName }) {
                 return table.columns
@@ -296,7 +290,6 @@ enum CompletionEngine {
         let len = chars.count
 
         while i < len && i < cursor {
-            // Line comment
             if i + 1 < len && chars[i] == 0x2D && chars[i + 1] == 0x2D {
                 var end = i + 2
                 while end < len && chars[end] != 0x0A { end += 1 }
@@ -305,7 +298,6 @@ enum CompletionEngine {
                 continue
             }
 
-            // Block comment
             if i + 1 < len && chars[i] == 0x2F && chars[i + 1] == 0x2A {
                 let start = i
                 i += 2
@@ -316,7 +308,6 @@ enum CompletionEngine {
                 continue
             }
 
-            // String literal
             if chars[i] == 0x27 {
                 let start = i
                 i += 1

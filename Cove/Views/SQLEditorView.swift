@@ -149,8 +149,6 @@ struct SQLEditorView: NSViewRepresentable {
             return false
         }
 
-        // MARK: - Completion logic
-
         private func scheduleCompletion() {
             completionWork?.cancel()
             let work = DispatchWorkItem { [weak self] in
@@ -180,13 +178,11 @@ struct SQLEditorView: NSViewRepresentable {
                 return
             }
 
-            // Compute word range for replacement
             let chars = Array(text.utf16)
             var ws = cursor
             while ws > 0 && CompletionEngine.isIdent(chars[ws - 1]) { ws -= 1 }
             wordRange = NSRange(location: ws, length: cursor - ws)
 
-            // Position popup at cursor
             guard let layoutManager = textView.layoutManager,
                   let textContainer = textView.textContainer else {
                 popup.hide()
@@ -233,8 +229,6 @@ struct SQLEditorView: NSViewRepresentable {
                 textView.didChangeText()
             }
         }
-
-        // MARK: - Runnable range bar
 
         func updateBar(range: NSRange) {
             guard let textView, let barView,
