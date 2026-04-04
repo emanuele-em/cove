@@ -26,3 +26,6 @@ Package.resolved
 
 # Local files
 *.local
+*.db
+*.db-shm
+*.db-wal
