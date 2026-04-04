@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-04-04
+
 - Fix DuckDB column info query to use `duckdb_columns()` instead of `information_schema` ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
 - Show a per-backend notice in the connection dialog; DuckDB explains the brew install requirement ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
 - SQLite over SSH — browse and query remote SQLite files via SSH exec channels ([#2](https://github.com/emanuele-em/cove/pull/2) by [@eznix86](https://github.com/eznix86))
@@ -15,6 +17,7 @@
 - Extracted SSH connection primitives into shared `SSHSupport` module ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
 - Replaced `isFileBased` boolean with `BackendCapabilities` struct ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
 - Mitmproxy-style changelog workflow with automatic PR attribution ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
+- Fix connection rail tooltip to use native macOS system tooltip
 
 ## [0.1.2] - 2026-03-29
 
