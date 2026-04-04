@@ -87,27 +87,6 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		AA0000A0 /* Embed libduckdb */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Embed libduckdb";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/libduckdb.dylib",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "set -e\nDUCKDB_LIB=\nfor p in /opt/homebrew/opt/duckdb/lib/libduckdb.dylib /opt/homebrew/lib/libduckdb.dylib /usr/local/opt/duckdb/lib/libduckdb.dylib /usr/local/lib/libduckdb.dylib \"$SRCROOT/Vendor/libduckdb.dylib\"; do\n  test -f \"$p\" && DUCKDB_LIB=\"$p\" && break\ndone\ntest -n \"$DUCKDB_LIB\" || { echo \"warning: libduckdb.dylib not found, skipping\"; exit 0; }\nDEST=\"$BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH/libduckdb.dylib\"\nmkdir -p \"$BUILT_PRODUCTS_DIR/$FRAMEWORKS_FOLDER_PATH\"\ncp \"$DUCKDB_LIB\" \"$DEST\"\nchmod +w \"$DEST\"\ninstall_name_tool -id @rpath/libduckdb.dylib \"$DEST\"\nOLD_NAME=`otool -D \"$DUCKDB_LIB\" | tail -1`\nfind \"$BUILT_PRODUCTS_DIR/$CONTENTS_FOLDER_PATH/MacOS\" -type f | while read bin; do\n  if otool -L \"$bin\" 2>/dev/null | grep -qF \"$OLD_NAME\"; then\n    install_name_tool -change \"$OLD_NAME\" @rpath/libduckdb.dylib \"$bin\"\n  fi\ndone\ncodesign --force --sign - \"$DEST\"\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXGroup section */
 		AA000002 /* root */ = {
@@ -138,7 +117,6 @@
 				AA000030 /* Sources */,
 				AA000020 /* Frameworks */,
 				AA000025 /* Resources */,
-				AA0000A0 /* Embed libduckdb */,
 			);
 			buildRules = (
 			);
@@ -273,7 +251,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/Vendor",
 					"/opt/homebrew/lib",
 					"/usr/local/lib",
 				);
@@ -281,7 +258,8 @@
 				MARKETING_VERSION = 0.1.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-lduckdb",
+					"-undefined",
+					"dynamic_lookup",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -316,7 +294,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/Vendor",
 					"/opt/homebrew/lib",
 					"/usr/local/lib",
 				);
@@ -324,7 +301,8 @@
 				MARKETING_VERSION = 0.1.2;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
-					"-lduckdb",
+					"-undefined",
+					"dynamic_lookup",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.cove.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -350,7 +328,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -380,7 +358,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
@@ -406,7 +384,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/Vendor",
 					"/opt/homebrew/lib",
 					"/usr/local/lib",
 				);
@@ -436,7 +413,6 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(SRCROOT)/Vendor",
 					"/opt/homebrew/lib",
 					"/usr/local/lib",
 				);

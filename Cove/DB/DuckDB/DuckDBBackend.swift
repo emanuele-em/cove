@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 final class DuckDBBackend: DatabaseBackend, @unchecked Sendable {
     let name = "DuckDB"
@@ -36,6 +37,10 @@ final class DuckDBBackend: DatabaseBackend, @unchecked Sendable {
         if let sshConfig = config.sshTunnel {
             execution = try await RemoteCLIExecution.connect(binaryName: "duckdb", path: config.database, sshConfig: sshConfig)
         } else {
+            let libPaths = ["/opt/homebrew/lib/libduckdb.dylib", "/usr/local/lib/libduckdb.dylib"]
+            guard libPaths.contains(where: { dlopen($0, RTLD_LAZY | RTLD_GLOBAL) != nil }) else {
+                throw DbError.connection("libduckdb not found — run: brew install duckdb")
+            }
             execution = try DuckDBLocalExecution.connect(path: config.database)
         }
         return DuckDBBackend(execution: execution)

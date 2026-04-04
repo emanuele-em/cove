@@ -26,6 +26,8 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - run: brew install duckdb
+
       - name: Build
         run: |
           xcodebuild -scheme Cove -configuration Release -derivedDataPath .build build \
