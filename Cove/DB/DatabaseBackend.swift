@@ -84,4 +84,8 @@ extension DatabaseBackend {
     func generateDropSQL(path: [String]) -> String? { nil }
     func structurePath(for tablePath: [String]) -> [String]? { tablePath + ["Columns"] }
     func fetchCompletionSchema(database: String) async throws -> CompletionSchema { .empty }
+
+    // Use this instead of error.localizedDescription — NIO and driver errors implement
+    // CustomStringConvertible with human-readable output, which localizedDescription loses.
+    static func errorMessage(_ error: any Error) -> String { String(describing: error) }
 }

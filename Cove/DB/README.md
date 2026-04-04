@@ -102,7 +102,14 @@ final class MyDBBackend: DatabaseBackend, @unchecked Sendable {
     let syntaxKeywords: Set<String> = []  // empty for non-SQL backends
 
     static func connect(config: ConnectionConfig) async throws -> MyDBBackend {
-        fatalError("TODO")
+        do {
+            // ... connect and verify ...
+            return MyDBBackend()
+        } catch {
+            // Use Self.errorMessage, not error.localizedDescription — NIO/driver errors
+            // implement CustomStringConvertible with far better output.
+            throw DbError.connection(Self.errorMessage(error))
+        }
     }
 
     // Capability queries
