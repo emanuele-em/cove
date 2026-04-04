@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ConnectionRail: View {
     @Environment(AppState.self) private var state
@@ -9,7 +10,7 @@ struct ConnectionRail: View {
                 addButton
 
                 ForEach(state.connectionsForSelectedEnvironment) { conn in
-                    connectionButton(conn)
+                    ConnectionButton(conn: conn)
                 }
             }
         }
@@ -35,11 +36,17 @@ struct ConnectionRail: View {
         }
         .buttonStyle(.plain)
     }
+}
 
-    private func connectionButton(_ conn: SavedConnection) -> some View {
+private struct ConnectionButton: View {
+    @Environment(AppState.self) private var state
+    let conn: SavedConnection
+
+    var body: some View {
         let isActive = state.activeConnectionId == conn.id
         let color = Color(hex: conn.colorHex ?? CoveTheme.accentHex)
-        return Button {
+
+        Button {
             state.selectConnection(conn.id)
         } label: {
             VStack(spacing: 1) {
@@ -60,20 +67,14 @@ struct ConnectionRail: View {
             )
         }
         .buttonStyle(.plain)
-        .help(conn.name)
+        .background(NativeTooltip(text: conn.name))
         .contextMenu {
             if state.activeConnectionId == conn.id {
-                Button("Disconnect") {
-                    state.disconnect()
-                }
+                Button("Disconnect") { state.disconnect() }
                 Divider()
             }
-            Button("Edit") {
-                state.openEditDialog(for: conn)
-            }
-            Button("Delete", role: .destructive) {
-                state.requestDeleteConnection(conn)
-            }
+            Button("Edit") { state.openEditDialog(for: conn) }
+            Button("Delete", role: .destructive) { state.requestDeleteConnection(conn) }
         }
     }
 
@@ -83,9 +84,13 @@ struct ConnectionRail: View {
         case 0: return "??"
         case 1: return String(words[0].prefix(2)).uppercased()
         default:
-            let a = words[0].first ?? Character("?")
-            let b = words[1].first ?? Character("?")
-            return "\(a)\(b)".uppercased()
+            return "\(words[0].first ?? "?")\(words[1].first ?? "?")".uppercased()
         }
     }
+}
+
+private struct NativeTooltip: NSViewRepresentable {
+    let text: String
+    func makeNSView(context: Context) -> NSView { let v = NSView(); v.toolTip = text; return v }
+    func updateNSView(_ nsView: NSView, context: Context) { nsView.toolTip = text }
 }
