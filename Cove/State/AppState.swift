@@ -453,7 +453,7 @@ final class AppState {
                 tree.removeChildren(for: parentPath)
                 await loadChildren(path: parentPath)
             } catch {
-                errorText = error.localizedDescription
+                errorText = String(describing: error)
             }
         }
     }
@@ -479,7 +479,7 @@ final class AppState {
                 tree.removeChildren(for: refreshPath)
                 await loadChildren(path: refreshPath)
             } catch {
-                errorText = error.localizedDescription
+                errorText = String(describing: error)
             }
         }
     }
