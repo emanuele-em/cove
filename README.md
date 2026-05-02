@@ -52,7 +52,8 @@ Adding a new backend requires zero changes to UI code — see [`DB/README.md`](C
 
 Agent Mode can create a new query or edit the current query block using a local agent CLI.
 
-![Agent Mode composer](https://emanuele-em.github.io/static/cove-020/agent-mode-composer-zoom.png)
+<img width="1068" height="316" alt="image" src="https://github.com/user-attachments/assets/eb78ed0f-c6ee-4293-888c-78f7c55f3072" />
+
 
 - Hover a selected query block or an empty editor line, then click **agent mode**
 - Press **Cmd+K** to open Agent Mode at the cursor
