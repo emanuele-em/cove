@@ -39,6 +39,7 @@ Adding a new backend requires zero changes to UI code — see [`DB/README.md`](C
 - **Browse** schemas, tables, views, indexes, and keys in a sidebar tree
 - **Edit rows** inline with SQL/CQL preview before commit
 - **Run queries** with syntax highlighting and autocomplete
+- **Agent Mode** — generate or edit queries with Claude Code or Codex CLI
 - **Multiple tabs** with independent connections (Cmd+T)
 - **Connection environments** — local, dev, staging, production
 - **SSH tunneling** — password or private key authentication
@@ -46,6 +47,24 @@ Adding a new backend requires zero changes to UI code — see [`DB/README.md`](C
 - **Session persistence** — connections and tabs restore across app relaunches
 - **Color-coded indicators** and connection tooltips
 - Native macOS UI — no Electron, no web views
+
+## Agent Mode
+
+Agent Mode can create a new query or edit the current query block using a local agent CLI.
+
+- Hover a selected query block or an empty editor line, then click **agent mode**
+- Press **Cmd+K** to open Agent Mode at the cursor
+- Press **Cmd+Return** from the Agent Mode prompt to generate
+- Press **Esc** or the close button to close Agent Mode
+
+Cove currently supports:
+
+- **Claude Code** via the `claude` CLI
+- **Codex CLI** via the `codex` CLI
+
+The selected agent receives the current query block, the active backend and database metadata, the loaded browser tree, and completion schema context. Cove does not send database passwords to the agent prompt.
+
+Agent processes run locally from Cove's Application Support workspace. macOS may still show a Documents folder permission prompt if the underlying CLI tries to access a protected folder, especially when developing or launching Cove from a repository inside `~/Documents`.
 
 ## Install
 
