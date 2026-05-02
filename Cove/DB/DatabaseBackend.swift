@@ -74,6 +74,8 @@ protocol DatabaseBackend: Sendable {
     func structurePath(for tablePath: [String]) -> [String]?
 
     func fetchCompletionSchema(database: String) async throws -> CompletionSchema
+
+    func fetchServerVersion(database: String) async throws -> String?
 }
 
 extension DatabaseBackend {
@@ -84,6 +86,7 @@ extension DatabaseBackend {
     func generateDropSQL(path: [String]) -> String? { nil }
     func structurePath(for tablePath: [String]) -> [String]? { tablePath + ["Columns"] }
     func fetchCompletionSchema(database: String) async throws -> CompletionSchema { .empty }
+    func fetchServerVersion(database: String) async throws -> String? { nil }
 
     // Use this instead of error.localizedDescription — NIO and driver errors implement
     // CustomStringConvertible with human-readable output, which localizedDescription loses.

@@ -45,6 +45,12 @@ struct CoveApp: App {
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(focusedTab?.connection == nil)
+
+                Button("Agent Mode") {
+                    focusedTab?.showAgentModeAtCursor()
+                }
+                .keyboardShortcut("k", modifiers: .command)
+                .disabled(focusedTab == nil)
             }
         }
     }

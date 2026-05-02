@@ -52,6 +52,8 @@ final class AppState {
     var environmentSessions: [ConnectionEnvironment: EnvironmentSession] = [:]
     var connectionSessions: [UUID: ConnectionSession] = [:]
     private var connectionGeneration = 0
+    private var agentRunGeneration = 0
+    private var activeAgentTask: Task<Void, Never>?
 
     // MARK: - Forwarding computed properties (views keep using state.savedConnections)
 
@@ -1004,6 +1006,122 @@ final class AppState {
                 query.result = nil
             }
         }
+    }
+
+    func generateQueryWithAgent() {
+        guard let conn = connection, let saved = activeConnection, let connectionId = activeConnectionId else {
+            query.agentError = QueryAgentError.noConnection.localizedDescription
+            return
+        }
+
+        let instruction = query.agentPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !instruction.isEmpty else {
+            query.agentError = QueryAgentError.missingPrompt.localizedDescription
+            return
+        }
+
+        let database = queryDatabase
+        let selectedPath = tree.selected
+        let targetRange = query.validAgentTargetRange ?? query.runnableRange
+        let currentQuery = query.sql(in: targetRange)
+        let replacementRange = currentQuery.isEmpty ? nil : targetRange
+        let insertionLocation = targetRange.location
+        guard let kind = query.selectedAgent else {
+            query.agentError = QueryAgentError.missingAgent.localizedDescription
+            return
+        }
+        let treeChildren = tree.children
+
+        activeAgentTask?.cancel()
+        agentRunGeneration += 1
+        let runGeneration = agentRunGeneration
+
+        query.agentExecuting = true
+        query.agentError = ""
+        query.agentStatus = ""
+
+        Task {
+            try? await Task.sleep(for: .seconds(120))
+            guard agentRunGeneration == runGeneration, query.agentExecuting else { return }
+            activeAgentTask?.cancel()
+            activeAgentTask = nil
+            agentRunGeneration += 1
+            query.agentExecuting = false
+            query.agentError = "Timed out generating query with \(kind.displayName)."
+        }
+
+        let generationTask = Task {
+            defer {
+                if agentRunGeneration == runGeneration {
+                    query.agentExecuting = false
+                    activeAgentTask = nil
+                }
+            }
+            do {
+                async let versionResult = conn.fetchServerVersion(database: database)
+                async let schemaResult = conn.fetchCompletionSchema(database: database)
+
+                let schema = (try? await schemaResult) ?? completionSchema
+                let context = QueryAgentContextBuilder.build(
+                    savedConnection: saved,
+                    backend: conn,
+                    database: database,
+                    selectedPath: selectedPath,
+                    treeChildren: treeChildren,
+                    completionSchema: schema,
+                    serverVersion: try? await versionResult
+                )
+
+                let session = QueryAgentSession(kind: kind)
+                let request = QueryAgentRequest(
+                    instruction: instruction,
+                    currentQuery: currentQuery,
+                    databaseContext: context
+                )
+                let response = try await session.generate(request: request)
+
+                guard agentRunGeneration == runGeneration,
+                      activeConnectionId == connectionId,
+                      queryDatabase == database,
+                      query.selectedAgent == kind else { return }
+                let generatedSQL = response.query.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let replacementRange {
+                    query.replaceSQL(in: replacementRange, with: response.query)
+                    query.agentTargetRange = NSRange(location: replacementRange.location, length: generatedSQL.utf16.count)
+                } else {
+                    if let insertedRange = query.insertSQL(response.query, at: insertionLocation) {
+                        query.agentTargetRange = insertedRange
+                    }
+                }
+                query.agentPrompt = ""
+                query.agentStatus = "Generated with \(kind.displayName)"
+                saveCurrentQuery()
+            } catch {
+                guard agentRunGeneration == runGeneration else { return }
+                query.agentError = error.localizedDescription
+            }
+        }
+        activeAgentTask = generationTask
+    }
+
+    func cancelQueryAgentGeneration() {
+        activeAgentTask?.cancel()
+        activeAgentTask = nil
+        agentRunGeneration += 1
+        query.agentExecuting = false
+        query.agentStatus = ""
+        query.hideAgentMode()
+    }
+
+    func showAgentModeAtCursor() {
+        query.showAgentMode(for: query.agentModeTargetRangeAtCursor)
+    }
+
+    func selectQueryAgent(_ kind: QueryAgentKind) {
+        guard query.selectedAgent != kind else { return }
+        query.selectedAgent = kind
+        query.agentError = ""
+        query.agentStatus = ""
     }
 
     // MARK: - Keyboard Navigation

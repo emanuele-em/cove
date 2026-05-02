@@ -7,6 +7,12 @@ struct SQLEditorView: NSViewRepresentable {
     var runnableRange: NSRange
     var keywords: Set<String> = []
     var completionSchema: CompletionSchema?
+    var isEditable = true
+    @Binding var agentInputVisible: Bool
+    @Binding var agentTargetRange: NSRange?
+    var onAgentMode: (NSRange) -> Void
+    var onAgentCancel: () -> Void
+    var agentComposer: () -> AnyView
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -19,8 +25,8 @@ struct SQLEditorView: NSViewRepresentable {
         scrollView.borderType = .noBorder
         scrollView.autoresizingMask = [.width, .height]
 
-        let textView = NSTextView()
-        textView.isEditable = true
+        let textView = HoverTextView()
+        textView.isEditable = isEditable
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.isRichText = false
@@ -43,20 +49,47 @@ struct SQLEditorView: NSViewRepresentable {
         textView.autoresizingMask = [.width]
         textView.textContainer?.widthTracksTextView = true
 
-        let barView = NSView()
-        barView.wantsLayer = true
-        barView.layer?.backgroundColor = NSColor.controlAccentColor.cgColor
-        barView.layer?.cornerRadius = 1.5
-        textView.addSubview(barView)
-        context.coordinator.barView = barView
+        let queryBoxView = QueryBoxView()
+        queryBoxView.wantsLayer = true
+        queryBoxView.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.10).cgColor
+        queryBoxView.layer?.borderColor = NSColor.controlAccentColor.withAlphaComponent(0.24).cgColor
+        queryBoxView.layer?.borderWidth = 1
+        queryBoxView.layer?.cornerRadius = 6
+        queryBoxView.isHidden = true
+        textView.addSubview(queryBoxView)
+        context.coordinator.queryBoxView = queryBoxView
 
         textView.delegate = context.coordinator
         scrollView.documentView = textView
         context.coordinator.textView = textView
 
+        let coordinator = context.coordinator
+        textView.onHoverMoved = { [weak coordinator] event in
+            coordinator?.handleHoverMoved(event)
+        }
+        textView.onHoverExited = { [weak coordinator] event in
+            coordinator?.handleHoverExited(event)
+        }
+        textView.onMouseDown = { [weak coordinator] event in
+            coordinator?.handleMouseDown(event)
+        }
+
+        let actionButton = AgentModeButtonHostingView(rootView: AnyView(AgentModeActionButton { [weak coordinator] in
+            coordinator?.showAgentMode()
+        }))
+        actionButton.isHidden = true
+        textView.addSubview(actionButton)
+        context.coordinator.actionButton = actionButton
+
+        let agentComposerView = NSHostingView(rootView: agentComposer())
+        agentComposerView.isHidden = true
+        textView.addSubview(agentComposerView)
+        context.coordinator.agentComposerView = agentComposerView
+
         if !text.isEmpty {
             textView.string = text
             highlightText(textView)
+            textView.setSelectedRange(clampedRange(selectedRange, in: text))
         }
 
         return scrollView
@@ -64,14 +97,17 @@ struct SQLEditorView: NSViewRepresentable {
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         guard let textView = scrollView.documentView as? NSTextView else { return }
+        context.coordinator.parent = self
+        context.coordinator.agentComposerView?.rootView = agentComposer()
         if textView.string != text {
-            let selectedRanges = textView.selectedRanges
             textView.string = text
             highlightText(textView)
-            textView.selectedRanges = selectedRanges
+            textView.setSelectedRange(clampedRange(selectedRange, in: text))
         }
-        context.coordinator.updateBar(range: runnableRange)
+        textView.isEditable = isEditable
+        context.coordinator.updateQueryBox(range: runnableRange)
         context.coordinator.completionSchema = completionSchema
+        context.coordinator.updateInlineAgentViews()
     }
 
     private func highlightText(_ textView: NSTextView) {
@@ -87,11 +123,24 @@ struct SQLEditorView: NSViewRepresentable {
         storage.endEditing()
     }
 
+    private func clampedRange(_ range: NSRange, in text: String) -> NSRange {
+        let textLength = (text as NSString).length
+        let location = min(max(range.location, 0), textLength)
+        let length = min(max(range.length, 0), textLength - location)
+        return NSRange(location: location, length: length)
+    }
+
+    @MainActor
     final class Coordinator: NSObject, NSTextViewDelegate {
-        let parent: SQLEditorView
+        var parent: SQLEditorView
         weak var textView: NSTextView?
-        var barView: NSView?
+        var queryBoxView: QueryBoxView?
+        var actionButton: NSHostingView<AnyView>?
+        var agentComposerView: NSHostingView<AnyView>?
         var completionSchema: CompletionSchema?
+        var hoveredQueryRange: NSRange?
+        var queryBoxRange: NSRange?
+        nonisolated(unsafe) var outsideMouseDownMonitor: Any?
         private let popup = CompletionPopup()
         private var completionWork: DispatchWorkItem?
         private var wordRange = NSRange(location: 0, length: 0)
@@ -104,17 +153,28 @@ struct SQLEditorView: NSViewRepresentable {
             }
         }
 
+        deinit {
+            if let outsideMouseDownMonitor {
+                NSEvent.removeMonitor(outsideMouseDownMonitor)
+            }
+        }
+
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
             parent.selectedRange = textView.selectedRange()
             parent.highlightText(textView)
+            updateQueryBox(range: currentRunnableRange(in: textView))
             scheduleCompletion()
+            updateInlineAgentViews()
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.selectedRange = textView.selectedRange()
+            hideAgentComposerIfSelectionMovedAway(in: textView)
+            updateQueryBox(range: currentRunnableRange(in: textView))
+            updateInlineAgentViews()
         }
 
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -139,7 +199,6 @@ struct SQLEditorView: NSViewRepresentable {
                 }
             }
 
-            // Manual trigger via Escape when popup not visible
             if commandSelector == #selector(NSResponder.complete(_:)) {
                 completionWork?.cancel()
                 updateCompletions()
@@ -183,8 +242,7 @@ struct SQLEditorView: NSViewRepresentable {
             while ws > 0 && CompletionEngine.isIdent(chars[ws - 1]) { ws -= 1 }
             wordRange = NSRange(location: ws, length: cursor - ws)
 
-            guard let layoutManager = textView.layoutManager,
-                  let textContainer = textView.textContainer else {
+            guard let layoutManager = textView.layoutManager else {
                 popup.hide()
                 return
             }
@@ -228,36 +286,6 @@ struct SQLEditorView: NSViewRepresentable {
                 textView.setSelectedRange(NSRange(location: newCursor, length: 0))
                 textView.didChangeText()
             }
-        }
-
-        func updateBar(range: NSRange) {
-            guard let textView, let barView,
-                  let layoutManager = textView.layoutManager,
-                  let textContainer = textView.textContainer
-            else { return }
-
-            guard range.length > 0, range.location + range.length <= (textView.string as NSString).length else {
-                barView.isHidden = true
-                return
-            }
-
-            let glyphRange = layoutManager.glyphRange(
-                forCharacterRange: range,
-                actualCharacterRange: nil
-            )
-            let blockRect = layoutManager.boundingRect(
-                forGlyphRange: glyphRange,
-                in: textContainer
-            )
-
-            let origin = textView.textContainerOrigin
-            barView.frame = NSRect(
-                x: 4,
-                y: blockRect.minY + origin.y,
-                width: 3,
-                height: blockRect.height
-            )
-            barView.isHidden = false
         }
     }
 }
