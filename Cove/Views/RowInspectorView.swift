@@ -3,15 +3,13 @@ import SwiftUI
 struct RowInspectorView: View {
     @Environment(AppState.self) private var state
     let table: TableState
-    @State private var drafts: [Int: String] = [:]
     @FocusState private var focusedField: Int?
 
     var body: some View {
         if let rowIdx = table.selectedRow, rowIdx < table.rows.count {
-            let hasPK = table.columns.contains { $0.isPrimaryKey }
             let isNew = table.isNewRow(rowIdx)
             let isDeleted = table.isDeletedRow(rowIdx)
-            let isEditable = hasPK && !isDeleted
+            let isEditable = !isDeleted && state.isEditableTable
 
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
@@ -61,14 +59,8 @@ struct RowInspectorView: View {
                 }
                 return .ignored
             }
-            .onAppear { applyFocus(rowIdx: rowIdx) }
-            .onChange(of: state.focusedColumn) { applyFocus(rowIdx: rowIdx) }
-            .onChange(of: table.selectedRow) { _, _ in resetDrafts() }
-            .onChange(of: focusedField) { oldField, _ in
-                if let old = oldField, let rowIdx = table.selectedRow {
-                    confirmField(colIdx: old, rowIdx: rowIdx)
-                }
-            }
+            .onAppear { applyFocus() }
+            .onChange(of: state.focusedColumn) { applyFocus() }
         } else {
             Text("Select a row to inspect")
                 .font(.system(size: 12))
@@ -80,26 +72,18 @@ struct RowInspectorView: View {
         }
     }
 
-    private func applyFocus(rowIdx: Int) {
+    private func applyFocus() {
         if let col = state.focusedColumn {
-            let effective = table.effectiveValue(row: rowIdx, col: col)
-            drafts[col] = effective ?? ""
             focusedField = col
         }
     }
 
-    private func resetDrafts() {
-        drafts.removeAll()
-    }
-
     private func editableFieldRow(rowIdx: Int, colIdx: Int, name: String) -> some View {
-        let effective = table.effectiveValue(row: rowIdx, col: colIdx)
         let hasEdit = table.hasEdit(row: rowIdx, col: colIdx)
-        let displayValue = effective ?? ""
 
         let binding = Binding<String>(
-            get: { drafts[colIdx] ?? displayValue },
-            set: { drafts[colIdx] = $0 }
+            get: { table.effectiveValue(row: rowIdx, col: colIdx) ?? "" },
+            set: { state.inspectorFieldChanged(col: colIdx, value: $0) }
         )
 
         return VStack(alignment: .leading, spacing: 2) {
@@ -107,12 +91,12 @@ struct RowInspectorView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            TextField("NULL", text: binding)
+            TextField("NULL", text: binding, axis: .vertical)
                 .font(.system(size: 12))
                 .textFieldStyle(.plain)
+                .lineLimit(1...6)
                 .foregroundStyle(hasEdit ? Color.green : .primary)
                 .focused($focusedField, equals: colIdx)
-                .onSubmit { confirmField(colIdx: colIdx, rowIdx: rowIdx) }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -137,12 +121,5 @@ struct RowInspectorView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func confirmField(colIdx: Int, rowIdx: Int) {
-        guard let draft = drafts[colIdx] else { return }
-        let original = table.rows[rowIdx][colIdx] ?? ""
-        guard draft != original else { return }
-        state.inspectorFieldConfirmed(col: colIdx, value: draft)
     }
 }

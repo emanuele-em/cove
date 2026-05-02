@@ -15,13 +15,16 @@ struct DataTableView: View {
                     table: table,
                     isQueryResult: isQueryResult,
                     onRowClicked: { row, col in
-                        guard !isQueryResult else { return }
-                        state.tableRowClicked(row: row)
+                        if let activeTable = state.table, activeTable === table {
+                            state.tableRowClicked(row: row)
+                        } else {
+                            table.selectedRow = row
+                        }
                         table.selectedColumn = col
                         isTableFocused = true
                     },
                     onDoubleClicked: { row, col in
-                        guard !isQueryResult else { return }
+                        guard let activeTable = state.table, activeTable === table else { return }
                         state.tableCellDoubleClicked(row: row, col: col)
                     },
                     onSortClicked: { col in
@@ -87,14 +90,18 @@ struct DataTableView: View {
             return .handled
         }
 
+        if mods == .command && keyPress.characters == "s" {
+            guard let activeTable = state.table, activeTable === table, table.hasPendingEdits else {
+                return .ignored
+            }
+            state.showSQLPreview = true
+            return .handled
+        }
+
         if mods == .command && !isQueryResult {
             switch keyPress.characters {
             case "c": state.tableCopyCell(); return .handled
             case "r": state.refresh(); return .handled
-            case "s":
-                guard table.hasPendingEdits else { return .ignored }
-                state.showSQLPreview = true
-                return .handled
             default: break
             }
         }
@@ -104,7 +111,7 @@ struct DataTableView: View {
 
     @ViewBuilder
     private var reviewChangesButton: some View {
-        if !isQueryResult && table.hasPendingEdits {
+        if let activeTable = state.table, activeTable === table, table.hasPendingEdits {
             Button {
                 state.showSQLPreview = true
             } label: {

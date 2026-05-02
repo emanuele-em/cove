@@ -610,8 +610,8 @@ final class AppState {
     }
 
     var isEditableTable: Bool {
-        guard let table else { return false }
-        return connection?.isEditable(path: table.tablePath) == true
+        guard let table, let path = table.mutationTablePath else { return false }
+        return connection?.isEditable(path: path) == true
             && table.columns.contains(where: \.isPrimaryKey)
     }
 
@@ -701,10 +701,24 @@ final class AppState {
         showInspector = true
     }
 
-    func inspectorFieldConfirmed(col: Int, value: String) {
+    func inspectorFieldChanged(col: Int, value: String) {
         guard let table else { return }
         guard let row = table.selectedRow else { return }
-        let newValue = value.isEmpty ? nil : value
+        stageCellEdit(table: table, row: row, col: col, newValue: value.isEmpty ? nil : value)
+    }
+
+    private func stageCellEdit(table: TableState, row: Int, col: Int, newValue: String?) {
+        guard row >= 0, row < table.rows.count, col >= 0, col < table.columns.count else { return }
+
+        table.pendingEdits.removeAll { $0.row == row && $0.col == col }
+
+        if table.rows[row][col] == newValue {
+            return
+        }
+        if table.isNewRow(row), newValue == nil {
+            return
+        }
+
         table.pendingEdits.append(PendingEdit(row: row, col: col, newValue: newValue))
     }
 
@@ -740,26 +754,29 @@ final class AppState {
     func generateSQLPreview() -> String {
         if isEditableStructure { return generateStructureSQLPreview() }
         guard let table, let conn = connection else { return "" }
+        guard let mutationTablePath = table.mutationTablePath else { return "" }
         let columns = table.columns
         let rows = table.rows
         let pkCols = columns.enumerated().filter { $0.element.isPrimaryKey }.map(\.offset)
 
         var statements: [String] = []
 
-        for rowIdx in table.pendingNewRows.sorted() {
-            var colEdits: [Int: String?] = [:]
-            for edit in table.pendingEdits where edit.row == rowIdx {
-                colEdits[edit.col] = edit.newValue
+        if !table.tablePath.isEmpty {
+            for rowIdx in table.pendingNewRows.sorted() {
+                var colEdits: [Int: String?] = [:]
+                for edit in table.pendingEdits where edit.row == rowIdx {
+                    colEdits[edit.col] = edit.newValue
+                }
+                guard !colEdits.isEmpty else { continue }
+                let pairs = colEdits.sorted(by: { $0.key < $1.key })
+                let colNames = pairs.map { columns[$0.key].updateColumnName }
+                let values = pairs.map(\.value)
+                statements.append(conn.generateInsertSQL(
+                    tablePath: table.tablePath,
+                    columns: colNames,
+                    values: values
+                ))
             }
-            guard !colEdits.isEmpty else { continue }
-            let pairs = colEdits.sorted(by: { $0.key < $1.key })
-            let colNames = pairs.map { columns[$0.key].name }
-            let values = pairs.map(\.value)
-            statements.append(conn.generateInsertSQL(
-                tablePath: table.tablePath,
-                columns: colNames,
-                values: values
-            ))
         }
 
         var seen: [String: Int] = [:]
@@ -773,21 +790,33 @@ final class AppState {
                 deduped.append(edit)
             }
         }
+        let primaryKeySet = Set(pkCols)
+        deduped.sort {
+            let lhsIsPK = primaryKeySet.contains($0.col)
+            let rhsIsPK = primaryKeySet.contains($1.col)
+            if lhsIsPK != rhsIsPK { return !lhsIsPK }
+            if $0.row != $1.row { return $0.row < $1.row }
+            return $0.col < $1.col
+        }
         for edit in deduped {
             let pk: [(column: String, value: String)] = pkCols.map { i in
-                (column: columns[i].name, value: rows[edit.row][i] ?? "")
+                (column: columns[i].updateColumnName, value: rows[edit.row][i] ?? "")
             }
             statements.append(conn.generateUpdateSQL(
-                tablePath: table.tablePath,
+                tablePath: mutationTablePath,
                 primaryKey: pk,
-                column: columns[edit.col].name,
+                column: columns[edit.col].updateColumnName,
                 newValue: edit.newValue
             ))
         }
 
+        guard !table.tablePath.isEmpty else {
+            return statements.joined(separator: ";\n")
+        }
+
         for rowIdx in table.pendingDeletes.sorted() {
             let pk: [(column: String, value: String)] = pkCols.map { i in
-                (column: columns[i].name, value: rows[rowIdx][i] ?? "")
+                (column: columns[i].updateColumnName, value: rows[rowIdx][i] ?? "")
             }
             statements.append(conn.generateDeleteSQL(
                 tablePath: table.tablePath,
@@ -871,8 +900,10 @@ final class AppState {
         if isEditableStructure { commitStructureEdits(); return }
         guard let table, table.hasPendingEdits else { return }
         guard let conn = connection else { return }
+        guard let mutationTablePath = table.mutationTablePath else { return }
 
         let tablePath = table.tablePath
+        let isQueryResult = tablePath.isEmpty
         let columns = table.columns
         let rows = table.rows
         let edits = table.pendingEdits
@@ -882,21 +913,23 @@ final class AppState {
 
         Task {
             do {
-                for rowIdx in newRows.sorted() {
-                    var colEdits: [Int: String?] = [:]
-                    for edit in edits where edit.row == rowIdx {
-                        colEdits[edit.col] = edit.newValue
+                if !isQueryResult {
+                    for rowIdx in newRows.sorted() {
+                        var colEdits: [Int: String?] = [:]
+                        for edit in edits where edit.row == rowIdx {
+                            colEdits[edit.col] = edit.newValue
+                        }
+                        guard !colEdits.isEmpty else { continue }
+                        let pairs = colEdits.sorted(by: { $0.key < $1.key })
+                        let colNames = pairs.map { columns[$0.key].updateColumnName }
+                        let values = pairs.map(\.value)
+                        let sql = conn.generateInsertSQL(
+                            tablePath: tablePath,
+                            columns: colNames,
+                            values: values
+                        )
+                        _ = try await conn.executeQuery(database: tablePath[0], sql: sql)
                     }
-                    guard !colEdits.isEmpty else { continue }
-                    let pairs = colEdits.sorted(by: { $0.key < $1.key })
-                    let colNames = pairs.map { columns[$0.key].name }
-                    let values = pairs.map(\.value)
-                    let sql = conn.generateInsertSQL(
-                        tablePath: tablePath,
-                        columns: colNames,
-                        values: values
-                    )
-                    _ = try await conn.executeQuery(database: tablePath[0], sql: sql)
                 }
 
                 var seen: [String: Int] = [:]
@@ -910,34 +943,51 @@ final class AppState {
                         deduped.append(edit)
                     }
                 }
+                let primaryKeySet = Set(pkCols)
+                deduped.sort {
+                    let lhsIsPK = primaryKeySet.contains($0.col)
+                    let rhsIsPK = primaryKeySet.contains($1.col)
+                    if lhsIsPK != rhsIsPK { return !lhsIsPK }
+                    if $0.row != $1.row { return $0.row < $1.row }
+                    return $0.col < $1.col
+                }
                 for edit in deduped {
                     let pk: [(column: String, value: String)] = pkCols.map { i in
-                        (column: columns[i].name, value: rows[edit.row][i] ?? "")
+                        (column: columns[i].updateColumnName, value: rows[edit.row][i] ?? "")
                     }
                     try await conn.updateCell(
-                        tablePath: tablePath,
+                        tablePath: mutationTablePath,
                         primaryKey: pk,
-                        column: columns[edit.col].name,
+                        column: columns[edit.col].updateColumnName,
                         newValue: edit.newValue
                     )
                 }
 
-                for rowIdx in deletedRows.sorted() {
-                    let pk: [(column: String, value: String)] = pkCols.map { i in
-                        (column: columns[i].name, value: rows[rowIdx][i] ?? "")
+                if !isQueryResult {
+                    for rowIdx in deletedRows.sorted() {
+                        let pk: [(column: String, value: String)] = pkCols.map { i in
+                            (column: columns[i].updateColumnName, value: rows[rowIdx][i] ?? "")
+                        }
+                        let sql = conn.generateDeleteSQL(
+                            tablePath: tablePath,
+                            primaryKey: pk
+                        )
+                        _ = try await conn.executeQuery(database: tablePath[0], sql: sql)
                     }
-                    let sql = conn.generateDeleteSQL(
-                        tablePath: tablePath,
-                        primaryKey: pk
-                    )
-                    _ = try await conn.executeQuery(database: tablePath[0], sql: sql)
                 }
 
+                for edit in deduped {
+                    table.rows[edit.row][edit.col] = edit.newValue
+                }
                 table.pendingNewRows.removeAll()
                 table.pendingDeletes.removeAll()
                 table.pendingEdits.removeAll()
-                table.selectedRow = nil
-                refresh()
+                if isQueryResult {
+                    errorText = ""
+                } else {
+                    table.selectedRow = nil
+                    refresh()
+                }
             } catch {
                 errorText = error.localizedDescription
             }
@@ -1361,6 +1411,7 @@ final class AppState {
         }
         breadcrumb = result
     }
+
 }
 
 extension Collection {

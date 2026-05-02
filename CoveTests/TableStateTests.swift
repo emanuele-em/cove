@@ -265,6 +265,30 @@ final class TableStateTests: XCTestCase {
         XCTAssertNil(state.selectedColumn)
     }
 
+    func testMutationTablePathUsesTablePathForNormalTable() {
+        let state = makeState()
+        XCTAssertEqual(state.mutationTablePath, ["db", "public", "Tables", "test"])
+    }
+
+    func testMutationTablePathUsesEditablePathForQueryResult() {
+        let columns = [
+            ColumnInfo(name: "alias_id", typeName: "uuid", isPrimaryKey: true, sourceColumnName: "id"),
+            ColumnInfo(name: "name", typeName: "text", isPrimaryKey: false),
+        ]
+        let result = QueryResult(
+            columns: columns,
+            rows: [["1", "Alice"]],
+            rowsAffected: nil,
+            totalCount: nil,
+            editableTablePath: ["db", "public", "Tables", "users"]
+        )
+        let state = TableState(tablePath: [], result: result)
+
+        XCTAssertEqual(state.mutationTablePath, ["db", "public", "Tables", "users"])
+        XCTAssertEqual(state.columns[0].updateColumnName, "id")
+        XCTAssertEqual(state.columns[1].updateColumnName, "name")
+    }
+
     func testSortIndicator() {
         let state = makeState()
         XCTAssertEqual(state.sortIndicator(for: "col0"), "")

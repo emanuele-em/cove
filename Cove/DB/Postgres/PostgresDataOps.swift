@@ -1,5 +1,13 @@
 import PostgresNIO
 
+private struct PostgresSourceColumn {
+    let schema: String
+    let table: String
+    let name: String
+    let typeName: String
+    let isPrimaryKey: Bool
+}
+
 extension PostgresBackend {
 
     func fetchTableData(
@@ -65,7 +73,7 @@ extension PostgresBackend {
 
     func executeQuery(database: String, sql: String) async throws -> QueryResult {
         let client = try await clientFor(database: database)
-        return try await runQuery(client: client, sql: sql)
+        return try await runQuery(client: client, sql: sql, database: database)
     }
 
     func updateCell(
@@ -93,7 +101,7 @@ extension PostgresBackend {
 
     // MARK: - Shared helpers
 
-    func runQuery(client: PostgresClient, sql: String) async throws -> QueryResult {
+    func runQuery(client: PostgresClient, sql: String, database: String? = nil) async throws -> QueryResult {
         let stream: PostgresRowSequence
         do {
             stream = try await client.query(PostgresQuery(stringLiteral: sql))
@@ -105,22 +113,11 @@ extension PostgresBackend {
             throw DbError.query(String(describing: error))
         }
 
-        var columnInfos: [ColumnInfo] = []
+        let resultColumns = Array(stream.columns)
         var allRows: [[String?]] = []
-        var columnsExtracted = false
 
         do {
             for try await row in stream {
-                if !columnsExtracted {
-                    for cell in row {
-                        columnInfos.append(ColumnInfo(
-                            name: cell.columnName,
-                            typeName: String(describing: cell.dataType),
-                            isPrimaryKey: false
-                        ))
-                    }
-                    columnsExtracted = true
-                }
                 allRows.append(decodeRowCells(row))
             }
         } catch let error as PSQLError {
@@ -131,11 +128,31 @@ extension PostgresBackend {
             throw DbError.query(String(describing: error))
         }
 
-        if columnInfos.isEmpty {
+        if resultColumns.isEmpty {
             return QueryResult(columns: [], rows: [], rowsAffected: 0, totalCount: nil)
         }
 
-        return QueryResult(columns: columnInfos, rows: allRows, rowsAffected: nil, totalCount: nil)
+        var columnInfos = resultColumns.map {
+            ColumnInfo(name: $0.name, typeName: String(describing: $0.dataType), isPrimaryKey: false)
+        }
+        var editableTablePath: [String]?
+        if let database,
+           let editableResult = try await inferEditableResult(
+               client: client,
+               database: database,
+               resultColumns: resultColumns
+           ) {
+            columnInfos = editableResult.columns
+            editableTablePath = editableResult.tablePath
+        }
+
+        return QueryResult(
+            columns: columnInfos,
+            rows: allRows,
+            rowsAffected: nil,
+            totalCount: nil,
+            editableTablePath: editableTablePath
+        )
     }
 
     func fetchCompletionSchema(database: String) async throws -> CompletionSchema {
@@ -229,6 +246,81 @@ extension PostgresBackend {
         for try await row in rows {
             let (name, typeName, isPK) = try row.decode((String, String, Bool).self, context: .default)
             columns.append(ColumnInfo(name: name, typeName: typeName, isPrimaryKey: isPK))
+        }
+        return columns
+    }
+
+    private func inferEditableResult(
+        client: PostgresClient,
+        database: String,
+        resultColumns: [PostgresColumn]
+    ) async throws -> (tablePath: [String], columns: [ColumnInfo])? {
+        guard let tableOID = resultColumns.first?.tableOID, tableOID > 0 else { return nil }
+        guard resultColumns.allSatisfy({
+            $0.tableOID == tableOID && $0.columnAttributeNumber > 0
+        }) else { return nil }
+
+        let sourceColumns = try await fetchSourceColumns(client: client, tableOID: tableOID)
+        guard let first = sourceColumns[resultColumns[0].columnAttributeNumber] else { return nil }
+        let resultAttnums = Set(resultColumns.map(\.columnAttributeNumber))
+        let primaryKeyAttnums = Set(sourceColumns.compactMap { entry in
+            entry.value.isPrimaryKey ? entry.key : nil
+        })
+        guard !primaryKeyAttnums.isEmpty,
+              primaryKeyAttnums.isSubset(of: resultAttnums) else {
+            return nil
+        }
+
+        var columns: [ColumnInfo] = []
+        columns.reserveCapacity(resultColumns.count)
+        for resultColumn in resultColumns {
+            guard let source = sourceColumns[resultColumn.columnAttributeNumber] else { return nil }
+            columns.append(ColumnInfo(
+                name: resultColumn.name,
+                typeName: source.typeName,
+                isPrimaryKey: source.isPrimaryKey,
+                sourceColumnName: source.name
+            ))
+        }
+
+        return (tablePath: [database, first.schema, "Tables", first.table], columns: columns)
+    }
+
+    private func fetchSourceColumns(
+        client: PostgresClient,
+        tableOID: Int32
+    ) async throws -> [Int16: PostgresSourceColumn] {
+        let sql = """
+            SELECT n.nspname, c.relname, a.attnum, a.attname, \
+            pg_catalog.format_type(a.atttypid, a.atttypmod), \
+            COALESCE(( \
+                SELECT true FROM pg_constraint pc \
+                WHERE pc.conrelid = c.oid \
+                AND pc.contype = 'p' \
+                AND a.attnum = ANY(pc.conkey) \
+            ), false) as is_pk \
+            FROM pg_class c \
+            JOIN pg_namespace n ON c.relnamespace = n.oid \
+            JOIN pg_attribute a ON a.attrelid = c.oid \
+            WHERE c.oid = \(tableOID) \
+            AND a.attnum > 0 AND NOT a.attisdropped \
+            ORDER BY a.attnum
+            """
+
+        let rows = try await client.query(PostgresQuery(stringLiteral: sql))
+        var columns: [Int16: PostgresSourceColumn] = [:]
+        for try await row in rows {
+            let (schema, table, attnum, name, typeName, isPK) = try row.decode(
+                (String, String, Int16, String, String, Bool).self,
+                context: .default
+            )
+            columns[attnum] = PostgresSourceColumn(
+                schema: schema,
+                table: table,
+                name: name,
+                typeName: typeName,
+                isPrimaryKey: isPK
+            )
         }
         return columns
     }

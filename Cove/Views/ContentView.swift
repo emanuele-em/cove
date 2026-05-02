@@ -44,7 +44,7 @@ struct ContentView: View {
                                 .layoutPriority(1)
                         }
 
-                        if state.showInspector, !state.showQueryEditor, let table = state.table,
+                        if state.showInspector, let table = state.table,
                            state.contentMode == .table, table.selectedRow != nil {
                             RowInspectorView(table: table)
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -128,7 +128,7 @@ struct ContentView: View {
     private var toolbarContent: some ToolbarContent {
         @Bindable var state = state
 
-        let hasTable = state.table != nil && state.contentMode == .table && !state.showQueryEditor
+        let hasTable = state.table != nil && state.contentMode == .table
         let canInspect = hasTable && state.table?.selectedRow != nil
 
         let connected = state.connection != nil
@@ -354,4 +354,3 @@ extension View {
         background { SplitDividerHider() }
     }
 }
-

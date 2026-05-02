@@ -16,6 +16,7 @@ final class TableState {
     var sortColumn: String?
     var sortDirection: SortDirection = .asc
     var tablePath: [String]
+    var editableTablePath: [String]?
     var selectedRow: Int?
     var selectedColumn: Int?
     var pendingEdits: [PendingEdit] = []
@@ -28,6 +29,7 @@ final class TableState {
         self.rows = result.rows
         self.totalCount = result.totalCount
         self.tablePath = tablePath
+        self.editableTablePath = result.editableTablePath ?? (tablePath.isEmpty ? nil : tablePath)
         self.cachedColWidths = Self.computeWidths(columns: result.columns, rows: result.rows)
     }
 
@@ -35,9 +37,14 @@ final class TableState {
         columns = result.columns
         rows = result.rows
         totalCount = result.totalCount
+        editableTablePath = result.editableTablePath ?? (tablePath.isEmpty ? editableTablePath : tablePath)
         selectedRow = nil
         selectedColumn = nil
         cachedColWidths = Self.computeWidths(columns: result.columns, rows: result.rows)
+    }
+
+    var mutationTablePath: [String]? {
+        editableTablePath ?? (tablePath.isEmpty ? nil : tablePath)
     }
 
     func discardEdits() {
