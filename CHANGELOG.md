@@ -7,6 +7,15 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-02
+
+- Local agent mode for queries with Claude Code and Codex CLI support
+- Review query result edits before saving
+- Keep database error details visible in the editor
+- Wire database dependencies for local Xcode builds
+- Ignore Swift profiling output
+- Refresh the README demo
+
 ## [0.1.3] - 2026-04-04
 
 - Fix DuckDB column info query to use `duckdb_columns()` instead of `information_schema` ([#7](https://github.com/emanuele-em/cove/pull/7) by @emanuele-em)
