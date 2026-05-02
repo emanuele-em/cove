@@ -9,6 +9,7 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.profraw
 
 # Swift Package Manager
 .build/
